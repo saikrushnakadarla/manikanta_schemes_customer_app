@@ -1,0 +1,771 @@
+/* Schemesinstallments.css */
+
+.installments-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.installments-content {
+  padding: 20px 0 40px;
+}
+
+/* Loading State */
+.installments-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 20px;
+}
+
+.installments-loading .spinner-border {
+  width: 3rem;
+  height: 3rem;
+}
+
+.installments-loading p {
+  color: #666;
+  font-size: 1.1rem;
+}
+
+/* Error State */
+.installments-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 15px;
+  text-align: center;
+  padding: 20px;
+}
+
+.installments-error i {
+  font-size: 4rem;
+  color: #dc3545;
+}
+
+.installments-error h3 {
+  color: #333;
+  margin: 10px 0 5px;
+}
+
+.installments-error p {
+  color: #666;
+  max-width: 400px;
+}
+
+.installments-error .btn {
+  margin-top: 10px;
+}
+
+/* Header Section */
+.installments-header {
+  background: white;
+  border-radius: 15px;
+  padding: 25px 30px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  position: relative;
+}
+
+.back-button {
+  position: absolute;
+  top: 25px;
+  left: 30px;
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 15px;
+  border-radius: 8px;
+}
+
+.back-button:hover {
+  background: #f0f2ff;
+  transform: translateX(-3px);
+}
+
+.back-button i {
+  font-size: 1.2rem;
+}
+
+.header-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 6px 18px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.header-badge i {
+  font-size: 1rem;
+}
+
+.installments-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 8px;
+}
+
+.installments-title i {
+  color: #667eea;
+  margin-right: 10px;
+}
+
+.installments-subtitle {
+  color: #718096;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* Stats Cards */
+.stats-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px 25px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card.total .stat-icon {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.stat-card.paid .stat-icon {
+  background: linear-gradient(135deg, #00b894, #00a381);
+}
+
+.stat-card.pending .stat-icon {
+  background: linear-gradient(135deg, #fdcb6e, #f39c12);
+}
+
+.stat-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.stat-info h3 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.stat-info p {
+  color: #718096;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Filter Section */
+.filter-container {
+  background: white;
+  border-radius: 12px;
+  padding: 15px 20px;
+  margin-bottom: 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 8px 18px;
+  border: 2px solid #e2e8f0;
+  background: white;
+  border-radius: 8px;
+  color: #4a5568;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+  background: #f7f8ff;
+}
+
+.filter-btn.active {
+  border-color: #667eea;
+  background: #667eea;
+  color: white;
+}
+
+.filter-btn i {
+  font-size: 0.9rem;
+}
+
+.filter-info {
+  color: #718096;
+  font-size: 0.9rem;
+}
+
+/* Installments List */
+.installments-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.installment-card {
+  background: white;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-left: 5px solid #e2e8f0;
+}
+
+.installment-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.installment-card.paid {
+  border-left-color: #00b894;
+}
+
+.installment-card.pending {
+  border-left-color: #fdcb6e;
+}
+
+.installment-card-header {
+  padding: 18px 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f0f0f0;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.installment-number {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.number-circle {
+  width: 45px;
+  height: 45px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.installment-number h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
+}
+
+.due-date {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  color: #718096;
+}
+
+.due-date i {
+  font-size: 0.8rem;
+}
+
+/* Status Badge */
+.status-badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-badge i {
+  font-size: 0.9rem;
+}
+
+.status-paid {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-overdue {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-cancelled {
+  background: #e2e3e5;
+  color: #383d41;
+}
+
+/* Installment Card Body */
+.installment-card-body {
+  padding: 20px 25px;
+}
+
+.installment-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.detail-item i {
+  font-size: 1.2rem;
+  color: #667eea;
+  margin-top: 3px;
+  min-width: 20px;
+}
+
+.detail-item label {
+  display: block;
+  font-size: 0.75rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.detail-item p {
+  font-size: 1rem;
+  color: #2d3748;
+  margin: 0;
+  font-weight: 500;
+}
+
+.detail-item .amount {
+  font-weight: 700;
+  color: #2d3748;
+}
+
+.detail-item .paid-amount {
+  color: #00b894;
+  font-weight: 700;
+}
+
+.detail-item .pending-status {
+  color: #f39c12;
+  font-weight: 600;
+}
+
+.detail-item .receipt-number {
+  font-size: 0.9rem;
+  color: #667eea;
+  font-weight: 600;
+}
+
+.detail-item .transaction-ref {
+  font-size: 0.85rem;
+  color: #4a5568;
+  font-family: monospace;
+}
+
+.pay-now-btn {
+  background: linear-gradient(135deg, #00b894, #00a381);
+  color: white;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pay-now-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 184, 148, 0.4);
+}
+
+/* Installment Remarks */
+.installment-remarks {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.installment-remarks i {
+  color: #667eea;
+  font-size: 1.1rem;
+  margin-top: 2px;
+}
+
+.installment-remarks p {
+  color: #4a5568;
+  font-size: 0.95rem;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Installment Card Footer */
+.installment-card-footer {
+  padding: 12px 25px;
+  background: #f8f9fa;
+  border-top: 1px solid #f0f0f0;
+}
+
+.timestamp-info {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+.timestamp-info i {
+  margin-right: 4px;
+}
+
+/* No Data */
+.no-data {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.no-data-content {
+  text-align: center;
+  color: #718096;
+}
+
+.no-data-content i {
+  font-size: 4rem;
+  color: #cbd5e0;
+  margin-bottom: 15px;
+}
+
+.no-data-content p {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.no-data-content span {
+  font-size: 0.95rem;
+}
+
+/* Pagination */
+.pagination-container {
+  background: white;
+  border-radius: 12px;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.pagination-info {
+  color: #718096;
+  font-size: 0.9rem;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #4a5568;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.page-number-btn {
+  min-width: 36px;
+  height: 36px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #4a5568;
+  font-weight: 500;
+  padding: 0 10px;
+}
+
+.page-number-btn:hover:not(.active) {
+  background: #f0f2ff;
+  border-color: #667eea;
+}
+
+.page-number-btn.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.page-dots {
+  color: #718096;
+  padding: 0 5px;
+} 
+
+/* Add to Schemesinstallments.css */
+
+.back-button {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.back-button:hover {
+  background: #f0f2ff;
+  transform: translateX(-3px);
+}
+
+.back-button i {
+  font-size: 1.2rem;
+} 
+
+.pay-now-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pay-now-btn .spinner-border {
+  margin-right: 8px;
+}
+
+.pay-now-btn i {
+  margin-right: 6px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .installments-header {
+    padding: 20px;
+  }
+
+  .back-button {
+    position: static;
+    margin-bottom: 15px;
+    display: inline-flex;
+  }
+
+  .header-content {
+    text-align: center;
+  }
+
+  .installments-title {
+    font-size: 1.5rem;
+  }
+
+  .stats-container {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 15px;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+
+  .stat-info h3 {
+    font-size: 1.3rem;
+  }
+
+  .filter-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-buttons {
+    justify-content: center;
+  }
+
+  .filter-info {
+    text-align: center;
+  }
+
+  .installment-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .installment-number {
+    width: 100%;
+  }
+
+  .installment-details-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .pagination-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .pagination-info {
+    text-align: center;
+  }
+
+  .page-numbers {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-container {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    flex-direction: row;
+    text-align: left;
+  }
+
+  .filter-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .filter-btn {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .installment-card-body {
+    padding: 15px;
+  }
+
+  .installment-card-header {
+    padding: 15px;
+  }
+
+  .timestamp-info {
+    flex-direction: column;
+    gap: 5px;
+  }
+}

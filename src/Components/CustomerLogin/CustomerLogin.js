@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Changed from useHistory to useNavigate
+import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './CustomerLogin.css';
-// Import your company logo
-import companyLogo from '../Images/MANIKANTHA JEWELLERS FINAL LOOG DESIGN (1)_page-0001.jpg'; // Adjust the path to your logo image
+import companyLogo from '../Images/MANIKANTHA JEWELLERS FINAL LOOG DESIGN (1)_page-0001.jpg';
 
 const CustomerLogin = () => {
-  const navigate = useNavigate(); // Changed from history to navigate
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     identifier: '',
     password: ''
@@ -57,7 +56,7 @@ const CustomerLogin = () => {
     setApiError('');
 
     try {
-      const response = await fetch('http://187.127.147.245:81/api/auth/login/', {
+      const response = await fetch('http://187.127.147.245:81/api/customer/login/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -74,23 +73,56 @@ const CustomerLogin = () => {
         throw new Error(data.message || 'Login failed. Please check your credentials.');
       }
 
-      console.log('Login successful:', data);
+      console.log('Customer login successful:', data);
       
+      // Extract customer data from response
+      const customerData = data.user || data.customer || data;
+      
+      // Store token if present
       if (data.token) {
-        localStorage.setItem('token', data.token);
-      }
-      if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('token', data.token); // Use 'token' consistently
+        localStorage.setItem('customerToken', data.token);
       }
       
-      navigate('/dashboard'); // Changed from history.push to navigate
+      // Store customer data
+      if (customerData) {
+        localStorage.setItem('customer', JSON.stringify(customerData));
+        localStorage.setItem('user', JSON.stringify(customerData)); // Also store as 'user' for compatibility
+        
+        // *** CRITICAL: Extract and store customer ID ***
+        const customerId = customerData.id || 
+                          customerData.customer_id || 
+                          customerData.user_id || 
+                          customerData._id ||
+                          data.customer_id ||
+                          data.id;
+        
+        if (customerId) {
+          // Store customer ID in multiple places for reliability
+          localStorage.setItem('customerId', customerId.toString());
+          localStorage.setItem('customer_id', customerId.toString()); // Alternative key
+          console.log('✅ Customer ID stored successfully:', customerId);
+        } else {
+          console.warn('⚠️ No customer ID found in response:', customerData);
+          // Try to extract from nested data
+          const nestedId = data?.data?.customer_id || data?.data?.id;
+          if (nestedId) {
+            localStorage.setItem('customerId', nestedId.toString());
+            localStorage.setItem('customer_id', nestedId.toString());
+            console.log('✅ Customer ID stored from nested data:', nestedId);
+          }
+        }
+      }
+      
+      // Navigate to dashboard
+      navigate('/dashboard');
 
     } catch (error) {
       setApiError(error.message || 'Network error. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  }; 
+  };
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -101,29 +133,25 @@ const CustomerLogin = () => {
       <div className="container">
         <div className="row justify-content-center align-items-center min-vh-100">
           <div className="col-11 col-sm-8 col-md-6 col-lg-5 col-xl-4"> 
-             <div className="company-logo-container mb-3">
-                    <img 
-                      src={companyLogo} 
-                      alt="Company Logo" 
-                      className="company-logo"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.style.display = 'none';
-                        // Show fallback icon if image fails to load
-                        e.target.parentElement.innerHTML += '<i className="bi bi-building" style="font-size: 3rem;"></i>';
-                      }}
-                    />
-                  </div>
+            <div className="company-logo-container mb-3">
+              <img 
+                src={companyLogo} 
+                alt="Company Logo" 
+                className="company-logo"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.style.display = 'none';
+                  e.target.parentElement.innerHTML += '<i className="bi bi-building" style="font-size: 3rem;"></i>';
+                }}
+              />
+            </div>
             <div className="card shadow-lg border-0 login-card">
               <div className="card-body p-4 p-sm-5">
-                {/* Logo/Brand with Company Logo Image */}
                 <div className="text-center mb-4">
-                 
-                  <h2 className="fw-bold mb-2">Welcome Back</h2>
+                  <h2 className="fw-bold mb-2">Customer Login</h2>
                   <p className="text-muted">Please sign in to continue</p>
                 </div>
 
-                {/* API Error Alert */}
                 {apiError && (
                   <div className="alert alert-danger alert-dismissible fade show" role="alert">
                     <i className="bi bi-exclamation-triangle-fill me-2"></i>
@@ -133,7 +161,6 @@ const CustomerLogin = () => {
                 )}
 
                 <form onSubmit={handleSubmit}>
-                  {/* Identifier Field */}
                   <div className="mb-3">
                     <label htmlFor="identifier" className="form-label fw-semibold">
                       Email or Username
@@ -158,7 +185,6 @@ const CustomerLogin = () => {
                     )}
                   </div>
 
-                  {/* Password Field */}
                   <div className="mb-3">
                     <label htmlFor="password" className="form-label fw-semibold">
                       Password
@@ -190,14 +216,12 @@ const CustomerLogin = () => {
                     )}
                   </div>
 
-                  {/* Forgot Password Link */}
                   <div className="text-end mb-3">
                     <a href="#" className="text-decoration-none small" onClick={(e) => e.preventDefault()}>
                       Forgot Password?
                     </a>
                   </div>
 
-                  {/* Submit Button */}
                   <button
                     type="submit"
                     className="btn btn-primary w-100 py-2 fw-semibold"
@@ -214,7 +238,6 @@ const CustomerLogin = () => {
                   </button>
                 </form>
 
-                {/* Sign Up Link */}
                 <div className="text-center mt-4">
                   <p className="text-muted mb-0">
                     Don't have an account?{' '}
@@ -226,7 +249,6 @@ const CustomerLogin = () => {
               </div>
             </div>
 
-            {/* Footer Note */}
             <p className="text-center text-muted small mt-3">
               &copy; 2024 Your Company. All rights reserved.
             </p>
