@@ -5,6 +5,7 @@ import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Schemes.css';
+import baseURL from '../URL/BaseURL';
 
 function Schemes() {
   const navigate = useNavigate();
@@ -59,7 +60,7 @@ function Schemes() {
         throw new Error('Customer ID not found. Please login again.');
       }
 
-      const response = await fetch(`http://187.127.147.245:81/api/customer/schemes/${customerId}/`, {
+      const response = await fetch(`${baseURL}/api/customer/schemes/${customerId}/`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -110,7 +111,7 @@ function Schemes() {
 
       console.log('🔍 Fetching scheme details for enrollment ID:', enrollmentId);
 
-      const response = await fetch(`http://187.127.147.245:81/api/customer/scheme-details/${enrollmentId}/`, {
+      const response = await fetch(`${baseURL}/api/customer/scheme-details/${enrollmentId}/`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

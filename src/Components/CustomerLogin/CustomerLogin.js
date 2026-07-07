@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './CustomerLogin.css';
+import { Link } from 'react-router-dom';
 import companyLogo from '../Images/MANIKANTHA JEWELLERS FINAL LOOG DESIGN (1)_page-0001.jpg';
+import baseURL from '../URL/BaseURL';
 
 const CustomerLogin = () => {
   const navigate = useNavigate();
@@ -56,7 +58,7 @@ const CustomerLogin = () => {
     setApiError('');
 
     try {
-      const response = await fetch('http://187.127.147.245:81/api/customer/login/', {
+      const response = await fetch(`${baseURL}/api/customer/login/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -74,29 +76,29 @@ const CustomerLogin = () => {
       }
 
       console.log('Customer login successful:', data);
-      
+
       // Extract customer data from response
       const customerData = data.user || data.customer || data;
-      
+
       // Store token if present
       if (data.token) {
         localStorage.setItem('token', data.token); // Use 'token' consistently
         localStorage.setItem('customerToken', data.token);
       }
-      
+
       // Store customer data
       if (customerData) {
         localStorage.setItem('customer', JSON.stringify(customerData));
         localStorage.setItem('user', JSON.stringify(customerData)); // Also store as 'user' for compatibility
-        
+
         // *** CRITICAL: Extract and store customer ID ***
-        const customerId = customerData.id || 
-                          customerData.customer_id || 
-                          customerData.user_id || 
-                          customerData._id ||
-                          data.customer_id ||
-                          data.id;
-        
+        const customerId = customerData.id ||
+          customerData.customer_id ||
+          customerData.user_id ||
+          customerData._id ||
+          data.customer_id ||
+          data.id;
+
         if (customerId) {
           // Store customer ID in multiple places for reliability
           localStorage.setItem('customerId', customerId.toString());
@@ -113,9 +115,9 @@ const CustomerLogin = () => {
           }
         }
       }
-      
+
       // Navigate to dashboard
-      navigate('/dashboard');
+      navigate('/products');
 
     } catch (error) {
       setApiError(error.message || 'Network error. Please try again.');
@@ -132,11 +134,11 @@ const CustomerLogin = () => {
     <div className="login-container">
       <div className="container">
         <div className="row justify-content-center align-items-center min-vh-100">
-          <div className="col-11 col-sm-8 col-md-6 col-lg-5 col-xl-4"> 
+          <div className="col-11 col-sm-8 col-md-6 col-lg-5 col-xl-4">
             <div className="company-logo-container mb-3">
-              <img 
-                src={companyLogo} 
-                alt="Company Logo" 
+              <img
+                src={companyLogo}
+                alt="Company Logo"
                 className="company-logo"
                 onError={(e) => {
                   e.target.onerror = null;
@@ -203,7 +205,7 @@ const CustomerLogin = () => {
                         onChange={handleChange}
                         disabled={isLoading}
                       />
-                      <span 
+                      <span
                         className="input-group-text bg-light border-start-0 password-toggle"
                         onClick={togglePasswordVisibility}
                         style={{ cursor: 'pointer' }}
@@ -241,9 +243,9 @@ const CustomerLogin = () => {
                 <div className="text-center mt-4">
                   <p className="text-muted mb-0">
                     Don't have an account?{' '}
-                    <a href="#" className="text-decoration-none fw-semibold" onClick={(e) => e.preventDefault()}>
+                    <Link to="/customerregister" className="text-decoration-none fw-semibold">
                       Sign up
-                    </a>
+                    </Link>
                   </p>
                 </div>
               </div>

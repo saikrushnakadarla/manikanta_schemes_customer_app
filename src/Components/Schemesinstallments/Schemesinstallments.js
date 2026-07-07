@@ -5,6 +5,7 @@ import Navbar from '../Navbar/Navbar';
 import Swal from 'sweetalert2';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Schemesinstallments.css';
+import baseURL from '../URL/BaseURL';
 
 // Load Razorpay script
 const loadRazorpayScript = () => {
@@ -93,7 +94,7 @@ function Schemesinstallments() {
       console.log('🔍 Fetching installments for enrollment ID:', enrollmentId);
 
       const response = await fetch(
-        `http://187.127.147.245:81/api/customer/schemes/${enrollmentId}/installments/`,
+        `${baseURL}/api/customer/schemes/${enrollmentId}/installments/`,
         {
           method: 'GET',
           headers: {
@@ -160,7 +161,7 @@ function Schemesinstallments() {
 
       // Step 3: Create payment order
       const createOrderResponse = await fetch(
-        'http://187.127.147.245:81/api/payments/create-order/',
+        `${baseURL}/api/payments/create-order/`,
         {
           method: 'POST',
           headers: {
@@ -235,7 +236,7 @@ function Schemesinstallments() {
       const token = localStorage.getItem('token') || localStorage.getItem('customerToken');
       
       const verifyResponse = await fetch(
-        'http://187.127.147.245:81/api/payments/verify/',
+        `${baseURL}/api/payments/verify/`,
         {
           method: 'POST',
           headers: {

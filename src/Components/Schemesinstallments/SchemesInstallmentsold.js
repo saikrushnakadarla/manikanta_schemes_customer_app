@@ -5,6 +5,7 @@ import Navbar from '../Navbar/Navbar';
 import Swal from 'sweetalert2';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Schemesinstallments.css';
+import baseURL from '../URL/BaseURL';
 
 function Schemesinstallments() {
   const location = useLocation();
@@ -81,7 +82,7 @@ function Schemesinstallments() {
       console.log('🔍 Fetching installments for enrollment ID:', enrollmentId);
 
       const response = await fetch(
-        `http://187.127.147.245:81/api/customer/schemes/${enrollmentId}/installments/`,
+        `${baseURL}/api/customer/schemes/${enrollmentId}/installments/`,
         {
           method: 'GET',
           headers: {

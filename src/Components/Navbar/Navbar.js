@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // Changed useHistory to useNavigate
+import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Navbar.css';
 // Import your logo image
-import logoImage from '../Images/MANIKANTHA JEWELLERS FINAL LOOG DESIGN (1)_page-0001.jpg'; // Adjust the path as needed
+import logoImage from '../Images/MANIKANTHA JEWELLERS FINAL LOOG DESIGN (1)_page-0001.jpg';
+import baseURL from '../URL/BaseURL';
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const navigate = useNavigate(); // Changed from useHistory to useNavigate
+  const navigate = useNavigate();
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
   };
 
   const handleLogout = async () => {
@@ -32,18 +37,15 @@ const Navbar = () => {
       allowEscapeKey: true,
     });
 
-    // If user clicks cancel, stop the logout process
     if (!result.isConfirmed) {
       return;
     }
 
-    // Get user data from localStorage
     const userData = JSON.parse(localStorage.getItem('user') || '{}');
     const token = localStorage.getItem('token');
 
     setIsLoggingOut(true);
 
-    // Show loading alert
     Swal.fire({
       title: 'Logging out...',
       text: 'Please wait while we log you out',
@@ -56,8 +58,7 @@ const Navbar = () => {
     });
 
     try {
-      // Call logout API
-      const response = await fetch('http://187.127.147.245:81/api/customer/logout/', {
+      const response = await fetch(`${baseURL}/api/customer/logout/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -68,11 +69,9 @@ const Navbar = () => {
         })
       });
 
-      // Check if response is OK (status 200-299)
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('Logout API error:', errorData);
-        // Continue with local logout even if API fails
       } else {
         const data = await response.json().catch(() => ({}));
         console.log('Logout successful:', data);
@@ -80,16 +79,12 @@ const Navbar = () => {
 
     } catch (error) {
       console.error('Error during logout API call:', error);
-      // Continue with local logout even if API fails
     } finally {
-      // Clear local storage regardless of API response
       localStorage.removeItem('token');
       localStorage.removeItem('user');
 
-      // Close SweetAlert if open
       Swal.close();
 
-      // Show success message
       await Swal.fire({
         title: 'Logged Out!',
         text: 'You have been successfully logged out.',
@@ -99,11 +94,8 @@ const Navbar = () => {
         background: '#fff',
       });
 
-      // Navigate to login page - Changed from history.push to navigate
       navigate('/');
-
-      // Close mobile menu if open
-      setIsMobileMenuOpen(false);
+      closeMobileMenu();
       setIsLoggingOut(false);
     }
   };
@@ -111,9 +103,18 @@ const Navbar = () => {
   return (
     <nav className="navbar-custom">
       <div className="navbar-container">
-        {/* Left side - Logo */}
+        {/* Mobile Menu Button - LEFT side */}
+        <div className="mobile-menu-btn" onClick={toggleMobileMenu}>
+          <div className={`hamburger ${isMobileMenuOpen ? 'active' : ''}`}>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+
+        {/* Logo - Center */}
         <div className="navbar-logo">
-          <Link to="/dashboard">
+          <Link to="/dashboard" onClick={closeMobileMenu}>
             <img
               src={logoImage}
               alt="Company Logo"
@@ -127,39 +128,42 @@ const Navbar = () => {
           </Link>
         </div>
 
-        {/* Mobile Menu Button */}
-        <div className="mobile-menu-btn" onClick={toggleMobileMenu}>
-          <div className={`hamburger ${isMobileMenuOpen ? 'active' : ''}`}>
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-        </div>
-
-        {/* Navigation Links - Desktop & Mobile */}
+        {/* Navigation Links - Desktop */}
         <div className={`navbar-links ${isMobileMenuOpen ? 'active' : ''}`}>
+          {/* Close button for mobile */}
+          <button className="mobile-close-btn" onClick={closeMobileMenu}>
+            <i className="bi bi-x-lg"></i>
+          </button>
+          
           <ul>
             <li>
-              <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+              <Link to="/dashboard" onClick={closeMobileMenu}>
                 <i className="bi bi-house-door"></i>
                 <span>Dashboard</span>
               </Link>
-            </li> 
+            </li>
 
-             {/* <li>
-              <Link to="/schemesinstallments" onClick={() => setIsMobileMenuOpen(false)}>
-                <i className="bi bi-journal-bookmark-fill"></i>
-                <span>Schemes Installments</span>
+            <li>
+              <Link to="/products" onClick={closeMobileMenu}>
+                <i className="bi bi-grid-3x3-gap-fill"></i>
+                <span>Products</span>
               </Link>
             </li>
-            */}
+
             <li>
-              <Link to="/schemes" onClick={() => setIsMobileMenuOpen(false)}>
+              <Link to="/cartpage" onClick={closeMobileMenu}>
+                <i className="bi bi-cart-fill"></i>
+                <span>Cart</span>
+              </Link>
+            </li>
+
+            <li>
+              <Link to="/schemes" onClick={closeMobileMenu}>
                 <i className="bi bi-journal-bookmark-fill"></i>
                 <span>Schemes</span>
               </Link>
             </li>
-       
+
             <li>
               <button
                 onClick={handleLogout}
@@ -181,6 +185,11 @@ const Navbar = () => {
             </li>
           </ul>
         </div>
+
+        {/* Overlay */}
+        {isMobileMenuOpen && (
+          <div className="mobile-overlay" onClick={closeMobileMenu}></div>
+        )}
       </div>
     </nav>
   );
