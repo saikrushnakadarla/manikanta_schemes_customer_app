@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import companyLogo from '../Images/MANIKANTHA JEWELLERS FINAL LOOG DESIGN (1)_page-0001.jpg';
 import baseURL from '../URL/BaseURL';
 
+
 const CustomerLogin = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({

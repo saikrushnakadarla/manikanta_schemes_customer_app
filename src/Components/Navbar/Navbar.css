@@ -1,18 +1,19 @@
 /* Navbar.css - Responsive Navigation Bar */
 
 .navbar-custom {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    background: white;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
     position: sticky;
     top: 0;
     z-index: 1000;
     width: 100%;
+    border-bottom: 1px solid #f0f0f0;
 }
 
 .navbar-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0.8rem 2rem;
+    padding: 0.6rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -25,14 +26,14 @@
     cursor: pointer;
     z-index: 1001;
     padding: 5px;
-    order: 0; /* Keep it first */
+    order: 0;
 }
 
-/* Logo Styles - Center */
+/* Logo Styles - Center with Brand Name */
 .navbar-logo {
     display: flex;
     align-items: center;
-    order: 1; /* Logo comes after hamburger */
+    order: 1;
     flex: 1;
     justify-content: center;
 }
@@ -41,36 +42,90 @@
     display: flex;
     align-items: center;
     text-decoration: none;
-    gap: 10px;
+    gap: 12px;
 }
 
 .logo-image {
-    height: 40px;
+    height: 55px;
     width: auto;
     transition: transform 0.3s ease;
+    border-radius: 8px;
 }
 
 .logo-image:hover {
-    transform: scale(1.05);
+    transform: scale(1.02);
 }
 
-.logo-text {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: white;
+.brand-name {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: rgb(163, 110, 41);
     letter-spacing: 1px;
+    font-family: 'Playfair Display', serif;
+}
+
+.brand-subtitle {
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: rgb(163, 110, 41);
+    letter-spacing: 2px;
+    margin-left: 2px;
+    font-family: 'Playfair Display', serif;
+}
+
+/* Right side icons */
+.navbar-icons {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    order: 2;
+}
+
+.nav-icon {
+    position: relative;
+    color: rgb(163, 110, 41);
+    font-size: 1.4rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-icon:hover {
+    color: rgb(143, 90, 21);
+    transform: scale(1.1);
+}
+
+.icon-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: rgb(163, 110, 41);
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 0.65rem;
+    font-weight: bold;
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: bounceIn 0.5s ease;
 }
 
 /* Desktop Navigation Links */
 .navbar-links {
     display: flex;
     align-items: center;
-    order: 2;
+    order: 3;
 }
 
 .navbar-links ul {
     display: flex;
-    gap: 1.5rem;
+    gap: 0.5rem;
     list-style: none;
     margin: 0;
     padding: 0;
@@ -83,9 +138,9 @@
 
 .navbar-links a,
 .logout-btn {
-    color: white;
+    color: #333;
     text-decoration: none;
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 500;
     padding: 0.5rem 1rem;
     border-radius: 8px;
@@ -100,25 +155,37 @@
 
 .navbar-links a i,
 .logout-btn i {
-    font-size: 1.1rem;
+    font-size: 1rem;
+    color: rgb(163, 110, 41);
 }
 
 .navbar-links a:hover,
 .logout-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
+    background: rgba(163, 110, 41, 0.1);
+    color: rgb(163, 110, 41);
+}
+
+.navbar-links a:hover i,
+.logout-btn:hover i {
+    color: rgb(163, 110, 41);
 }
 
 .logout-btn {
-    background: rgba(220, 53, 69, 0.2);
+    background: rgba(220, 53, 69, 0.08);
+    color: #dc3545;
 }
 
 .logout-btn:hover {
-    background: rgba(220, 53, 69, 0.3);
+    background: rgba(220, 53, 69, 0.15);
+    color: #dc3545;
+}
+
+.logout-btn:hover i {
+    color: #dc3545;
 }
 
 .hamburger {
-    width: 30px;
+    width: 28px;
     height: 20px;
     position: relative;
     display: flex;
@@ -129,14 +196,14 @@
 .hamburger span {
     display: block;
     width: 100%;
-    height: 3px;
-    background-color: white;
+    height: 2.5px;
+    background-color: rgb(163, 110, 41);
     border-radius: 3px;
     transition: all 0.3s ease;
 }
 
 .hamburger.active span:nth-child(1) {
-    transform: rotate(45deg) translate(8px, 6px);
+    transform: rotate(45deg) translate(7px, 6px);
 }
 
 .hamburger.active span:nth-child(2) {
@@ -144,7 +211,7 @@
 }
 
 .hamburger.active span:nth-child(3) {
-    transform: rotate(-45deg) translate(7px, -5px);
+    transform: rotate(-45deg) translate(7px, -6px);
 }
 
 /* Mobile Close Button */
@@ -155,7 +222,7 @@
     right: 20px;
     background: none;
     border: none;
-    color: white;
+    color: rgb(163, 110, 41);
     font-size: 2rem;
     cursor: pointer;
     padding: 5px;
@@ -170,7 +237,7 @@
 }
 
 .mobile-close-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(163, 110, 41, 0.1);
     transform: rotate(90deg);
 }
 
@@ -187,20 +254,58 @@
     animation: fadeIn 0.3s ease;
 }
 
+.mobile-badge {
+    background: rgb(163, 110, 41);
+    color: white;
+    border-radius: 50%;
+    padding: 1px 6px;
+    font-size: 0.7rem;
+    margin-left: auto;
+    min-width: 20px;
+    text-align: center;
+}
+
 /* Responsive Design */
+@media screen and (max-width: 992px) {
+    .brand-name {
+        font-size: 1.2rem;
+    }
+    
+    .brand-subtitle {
+        font-size: 0.75rem;
+    }
+    
+    .logo-image {
+        height: 45px;
+    }
+}
+
 @media screen and (max-width: 768px) {
     .navbar-container {
-        padding: 0.8rem 1rem;
-        justify-content: flex-start; /* Align items to start */
-        gap: 10px;
+        padding: 0.6rem 1rem;
+        justify-content: space-between;
     }
 
-    .logo-text {
-        font-size: 1rem;
+    .navbar-icons {
+        gap: 15px;
+        order: 2;
+    }
+
+    .nav-icon {
+        font-size: 1.2rem;
     }
 
     .logo-image {
-        height: 35px;
+        height: 40px;
+    }
+
+    .brand-name {
+        font-size: 1rem;
+    }
+    
+    .brand-subtitle {
+        font-size: 0.7rem;
+        letter-spacing: 1px;
     }
 
     /* Show mobile menu button - LEFT */
@@ -212,8 +317,12 @@
     /* Center the logo */
     .navbar-logo {
         order: 1;
-        flex: 1;
+        flex: 0 1 auto;
         justify-content: center;
+    }
+
+    .navbar-logo a {
+        gap: 8px;
     }
 
     /* Show close button in mobile */
@@ -223,19 +332,19 @@
 
     /* Mobile Menu - Slide from LEFT */
     .navbar-links {
+        display: flex;
         position: fixed;
         top: 0;
         left: -100%;
         width: 320px;
         max-width: 80%;
         height: 100vh;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: white;
         padding: 70px 25px 30px;
         transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 2px 0 20px rgba(0, 0, 0, 0.3);
+        box-shadow: 2px 0 30px rgba(0, 0, 0, 0.15);
         z-index: 999;
         overflow-y: auto;
-        display: flex;
         flex-direction: column;
     }
 
@@ -250,7 +359,7 @@
 
     .navbar-links ul {
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 0.3rem;
         width: 100%;
         flex: 1;
         margin-top: 20px;
@@ -264,41 +373,67 @@
     .navbar-links a,
     .logout-btn {
         width: 100%;
-        padding: 0.8rem 1.2rem;
+        padding: 0.7rem 1rem;
         justify-content: flex-start;
-        font-size: 1.05rem;
-        border-radius: 10px;
-        color: white;
+        font-size: 1rem;
+        border-radius: 8px;
+        color: #333;
         text-decoration: none;
     }
 
     .navbar-links a i,
     .logout-btn i {
         width: 25px;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
+        color: rgb(163, 110, 41);
     }
 
     .navbar-links a:hover,
     .logout-btn:hover {
-        background: rgba(255, 255, 255, 0.15);
+        background: rgba(163, 110, 41, 0.1);
+        color: rgb(163, 110, 41);
         transform: translateX(5px);
     }
 
+    .navbar-links a:hover i,
+    .logout-btn:hover i {
+        color: rgb(163, 110, 41);
+    }
+
     .logout-btn {
-        background: rgba(220, 53, 69, 0.2);
+        background: rgba(220, 53, 69, 0.08);
+        color: #dc3545;
         margin-top: 10px;
     }
 
     .logout-btn:hover {
-        background: rgba(220, 53, 69, 0.35);
+        background: rgba(220, 53, 69, 0.15);
+        color: #dc3545;
+    }
+
+    .logout-btn:hover i {
+        color: #dc3545;
+    }
+
+    .mobile-badge {
+        margin-left: auto;
+        background: rgb(163, 110, 41);
+        color: white;
     }
 }
 
 /* Small mobile devices */
 @media screen and (max-width: 480px) {
     .navbar-container {
-        padding: 0.6rem 0.8rem;
-        gap: 8px;
+        padding: 0.5rem 0.8rem;
+    }
+
+    .navbar-icons {
+        gap: 12px;
+    }
+
+    .nav-icon {
+        font-size: 1.1rem;
     }
 
     .navbar-links {
@@ -307,28 +442,33 @@
         padding: 60px 20px 20px;
     }
 
-    .logo-text {
-        font-size: 0.85rem;
+    .logo-image {
+        height: 35px;
     }
 
-    .logo-image {
-        height: 30px;
-        width: auto;
+    .brand-name {
+        font-size: 0.85rem;
+    }
+    
+    .brand-subtitle {
+        font-size: 0.6rem;
+        letter-spacing: 1px;
     }
 
     .navbar-links a,
     .logout-btn {
-        padding: 0.7rem 1rem;
-        font-size: 0.95rem;
+        padding: 0.6rem 0.8rem;
+        font-size: 0.9rem;
     }
 
     .hamburger {
-        width: 25px;
-        height: 17px;
+        width: 22px;
+        height: 16px;
     }
 
     .hamburger span {
-        height: 2.5px;
+        height: 2px;
+        background-color: rgb(163, 110, 41);
     }
 
     .hamburger.active span:nth-child(1) {
@@ -345,14 +485,22 @@
         right: 15px;
         width: 35px;
         height: 35px;
+        color: rgb(163, 110, 41);
     }
 }
 
 /* Very small devices */
 @media screen and (max-width: 360px) {
     .navbar-container {
-        padding: 0.5rem 0.6rem;
-        gap: 5px;
+        padding: 0.4rem 0.5rem;
+    }
+
+    .navbar-icons {
+        gap: 8px;
+    }
+
+    .nav-icon {
+        font-size: 1rem;
     }
 
     .navbar-links {
@@ -361,33 +509,40 @@
         padding: 50px 15px 15px;
     }
 
-    .logo-text {
-        font-size: 0.7rem;
+    .logo-image {
+        height: 30px;
     }
 
-    .logo-image {
-        height: 25px;
+    .brand-name {
+        font-size: 0.75rem;
+    }
+    
+    .brand-subtitle {
+        font-size: 0.5rem;
+        letter-spacing: 0.5px;
     }
 
     .navbar-links a,
     .logout-btn {
-        padding: 0.6rem 0.8rem;
+        padding: 0.5rem 0.7rem;
         font-size: 0.85rem;
     }
 
     .navbar-links a i,
     .logout-btn i {
-        width: 20px;
-        font-size: 1rem;
+        width: 18px;
+        font-size: 0.9rem;
+        color: rgb(163, 110, 41);
     }
 
     .hamburger {
-        width: 20px;
+        width: 18px;
         height: 14px;
     }
 
     .hamburger span {
         height: 2px;
+        background-color: rgb(163, 110, 41);
     }
 
     .hamburger.active span:nth-child(1) {
@@ -399,7 +554,7 @@
     }
 }
 
-/* Animation for mobile menu items - Slide from LEFT */
+/* Animation for mobile menu items */
 @keyframes slideInLeft {
     from {
         opacity: 0;
@@ -416,179 +571,26 @@
     opacity: 0;
 }
 
-.navbar-links.active ul li:nth-child(1) {
-    animation-delay: 0.05s;
-}
-
-.navbar-links.active ul li:nth-child(2) {
-    animation-delay: 0.1s;
-}
-
-.navbar-links.active ul li:nth-child(3) {
-    animation-delay: 0.15s;
-}
-
-.navbar-links.active ul li:nth-child(4) {
-    animation-delay: 0.2s;
-}
-
-.navbar-links.active ul li:nth-child(5) {
-    animation-delay: 0.25s;
-}
+.navbar-links.active ul li:nth-child(1) { animation-delay: 0.05s; }
+.navbar-links.active ul li:nth-child(2) { animation-delay: 0.1s; }
+.navbar-links.active ul li:nth-child(3) { animation-delay: 0.15s; }
+.navbar-links.active ul li:nth-child(4) { animation-delay: 0.2s; }
+.navbar-links.active ul li:nth-child(5) { animation-delay: 0.25s; }
+.navbar-links.active ul li:nth-child(6) { animation-delay: 0.3s; }
+.navbar-links.active ul li:nth-child(7) { animation-delay: 0.35s; }
+.navbar-links.active ul li:nth-child(8) { animation-delay: 0.4s; }
+.navbar-links.active ul li:nth-child(9) { animation-delay: 0.45s; }
+.navbar-links.active ul li:nth-child(10) { animation-delay: 0.5s; }
+.navbar-links.active ul li:nth-child(11) { animation-delay: 0.55s; }
 
 /* Fade In Animation for Overlay */
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-/* Modal Styles (keeping existing modal styles) */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    animation: fadeIn 0.3s ease;
-}
-
-.modal-container {
-    background: white;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 400px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-    animation: slideInDown 0.3s ease;
-    overflow: hidden;
-}
-
-.modal-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 1.5rem;
-    text-align: center;
-}
-
-.modal-header i {
-    font-size: 3rem;
-    margin-bottom: 0.5rem;
-}
-
-.modal-header h3 {
-    margin: 0;
-    font-size: 1.5rem;
-}
-
-.modal-body {
-    padding: 1.5rem;
-    text-align: center;
-}
-
-.modal-body p {
-    margin: 0 0 0.5rem 0;
-    color: #333;
-    font-size: 1rem;
-}
-
-.modal-warning {
-    color: #dc3545 !important;
-    font-size: 0.9rem !important;
-    margin-top: 0.5rem !important;
-}
-
-.modal-footer {
-    padding: 1rem 1.5rem;
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    border-top: 1px solid #e0e0e0;
-}
-
-.btn-cancel,
-.btn-confirm {
-    padding: 0.5rem 1.5rem;
-    border: none;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.btn-cancel {
-    background: #6c757d;
-    color: white;
-}
-
-.btn-cancel:hover {
-    background: #5a6268;
-    transform: translateY(-2px);
-}
-
-.btn-confirm {
-    background: #dc3545;
-    color: white;
-}
-
-.btn-confirm:hover {
-    background: #c82333;
-    transform: translateY(-2px);
-}
-
-/* Modal Animations */
-@keyframes slideInDown {
-    from {
-        transform: translateY(-50px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-/* Mobile Responsive for Modal */
-@media (max-width: 576px) {
-    .modal-container {
-        width: 95%;
-        margin: 1rem;
-    }
-
-    .modal-header {
-        padding: 1rem;
-    }
-
-    .modal-header i {
-        font-size: 2rem;
-    }
-
-    .modal-header h3 {
-        font-size: 1.2rem;
-    }
-
-    .modal-body {
-        padding: 1rem;
-    }
-
-    .modal-footer {
-        padding: 0.75rem 1rem;
-    }
-
-    .btn-cancel,
-    .btn-confirm {
-        padding: 0.4rem 1rem;
-        font-size: 0.85rem;
-    }
+@keyframes bounceIn {
+    0% { transform: scale(0); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
 }

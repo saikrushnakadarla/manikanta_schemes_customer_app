@@ -6,6 +6,7 @@ import Swal from 'sweetalert2';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Schemesinstallments.css';
 import baseURL from '../URL/BaseURL';
+import Footer from '../Footer/Footer';
 
 // Load Razorpay script
 const loadRazorpayScript = () => {
@@ -700,7 +701,8 @@ function Schemesinstallments() {
             </div>
           )}
         </div>
-      </div>
+      </div> 
+      <Footer/>
     </div>
   );
 }

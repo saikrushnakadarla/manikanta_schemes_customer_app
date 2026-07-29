@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Schemes.css';
 import baseURL from '../URL/BaseURL';
+import Footer from '../Footer/Footer';
 
 function Schemes() {
   const navigate = useNavigate();
@@ -731,7 +732,8 @@ function Schemes() {
             </div>
           </div>
         </div>
-      )}
+      )} 
+      <Footer/>
     </div>
   );
 }
