@@ -22,6 +22,8 @@ import TermsConditions from "./Components/TermsConditions/TermsConditions";
 import OrderConfirmation from "./Components/Products/OrderConfirmation";
 import Checkout from "./Components/Products/Checkout";
 import WishlistPage from "./Components/WishlistPage/WishlistPage";
+import AllSchemes from "./Components/AllSchemes/AllSchemes";
+import SchemeDetails from "./Components/AllSchemes/SchemeDetails";
 
 function App() {
   return (
@@ -45,7 +47,9 @@ function App() {
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-conditions" element={<TermsConditions />} /> 
         <Route path="/checkout" element={<Checkout />} /> 
-        <Route path="/wishlist" element={<WishlistPage />} />
+        <Route path="/wishlist" element={<WishlistPage />} /> 
+        <Route path="/allschemes" element={<AllSchemes />} /> 
+        <Route path="/schemesdetails/:id" element={<SchemeDetails />} />
       </Routes>
     </Router>
   );

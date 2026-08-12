@@ -218,7 +218,7 @@ const ProductDetail = () => {
       }
     }).then((result) => {
       if (result.isConfirmed) {
-        navigate('/cart');
+        navigate('/cartpage');
       }
     });
   };
@@ -519,7 +519,7 @@ const ProductDetail = () => {
                 <button 
                   className="qty-btn"
                   onClick={() => handleQuantityChange(-1)}
-                  disabled={quantity <= 1 || isAddedToCart}
+                  disabled={quantity <= 1}
                 >
                   −
                 </button>
@@ -527,7 +527,7 @@ const ProductDetail = () => {
                 <button 
                   className="qty-btn"
                   onClick={() => handleQuantityChange(1)}
-                  disabled={quantity >= 10 || isAddedToCart}
+                  disabled={quantity >= 10}
                 >
                   +
                 </button>
@@ -548,10 +548,11 @@ const ProductDetail = () => {
                   <span>🛒 {product.inStock ? 'Add to Cart' : 'Out of Stock'}</span>
                 )}
               </button>
+              {/* FIX: Remove isAddedToCart from disabled condition */}
               <button 
                 className="buy-now-btn"
                 onClick={handleBuyNow}
-                disabled={!product.inStock || isAddedToCart}
+                disabled={!product.inStock}
               >
                 Buy Now
               </button>

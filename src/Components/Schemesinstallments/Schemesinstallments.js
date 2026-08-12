@@ -718,6 +718,7 @@ import Navbar from '../Navbar/Navbar';
 import Swal from 'sweetalert2';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Schemesinstallments.css';
+import baseURL from '../URL/BaseURL';
 
 // Load Razorpay script
 const loadRazorpayScript = () => {
@@ -800,7 +801,7 @@ function Schemesinstallments() {
       console.log('🔍 Fetching installments for enrollment ID:', enrollmentId);
 
       const response = await fetch(
-        `http://127.0.0.1:8000/api/customer/schemes/${enrollmentId}/installments/`,
+        `${baseURL}/api/customer/schemes/${enrollmentId}/installments/`,
         {
           method: 'GET',
           headers: {
@@ -865,7 +866,7 @@ function Schemesinstallments() {
 
       // Step 2: Create payment order (without Authorization header)
       const createOrderResponse = await fetch(
-        'http://127.0.0.1:8000/api/scheme/initiate-payment/',
+        `${baseURL}/api/scheme/initiate-payment/`,
         {
           method: 'POST',
           headers: {
@@ -943,7 +944,7 @@ function Schemesinstallments() {
     
     try {
       const verifyResponse = await fetch(
-        'http://127.0.0.1:8000/api/scheme/confirm-payment/',
+        `${baseURL}/api/scheme/confirm-payment/`,
         {
           method: 'POST',
           headers: {

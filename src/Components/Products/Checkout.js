@@ -10,13 +10,14 @@ const Checkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
-  const [orderData, setOrderData] = useState(null);
+  const [cartData, setCartData] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('Online');
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
+  const [customerId, setCustomerId] = useState(null);
   const [newAddress, setNewAddress] = useState({
     address_type: 'Home',
     full_name: '',
@@ -55,18 +56,23 @@ const Checkout = () => {
     return null;
   };
 
-  // Fetch customer addresses
+  // Fetch customer addresses - ONLY for the current customer
   const fetchAddresses = async () => {
     try {
       setLoadingAddresses(true);
-      const customerId = getCustomerId();
+      const currentCustomerId = getCustomerId();
       
-      if (!customerId) {
+      if (!currentCustomerId) {
         console.warn('No customer ID found');
+        setLoadingAddresses(false);
+        setShowAddressForm(true);
         return;
       }
 
-      const response = await fetch(`${baseURL}/api/customer-addresses/?customer=${customerId}`, {
+      setCustomerId(currentCustomerId);
+
+      // Fetch addresses with customer filter
+      const response = await fetch(`${baseURL}/api/customer-addresses/?customer=${currentCustomerId}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -82,56 +88,66 @@ const Checkout = () => {
       console.log('Addresses response:', data);
 
       let addressList = [];
+      
+      // Handle different response formats
       if (Array.isArray(data)) {
-        addressList = data;
+        addressList = data.filter(addr => addr.customer === currentCustomerId);
       } else if (data && data.data && Array.isArray(data.data)) {
-        addressList = data.data;
+        addressList = data.data.filter(addr => addr.customer === currentCustomerId);
       } else if (data && data.results && Array.isArray(data.results)) {
-        addressList = data.results;
+        addressList = data.results.filter(addr => addr.customer === currentCustomerId);
       }
 
+      console.log('Filtered addresses for customer:', addressList);
       setAddresses(addressList);
       
-      // Select default address or first address
+      // IMPORTANT FIX: Don't auto-select any address
       if (addressList.length > 0) {
-        const defaultAddress = addressList.find(addr => addr.is_default) || addressList[0];
-        setSelectedAddress(defaultAddress);
+        // Initially, no address should be selected
+        setSelectedAddress(null);
         setShowAddressForm(false);
       } else {
         setShowAddressForm(true);
+        setSelectedAddress(null);
       }
     } catch (err) {
       console.error('Error fetching addresses:', err);
-      // If no addresses, show form
       setShowAddressForm(true);
+      setSelectedAddress(null);
     } finally {
       setLoadingAddresses(false);
     }
   };
 
   useEffect(() => {
-    // Get product data from location state
-    if (location.state && location.state.product) {
+    // Get cart data from location state
+    if (location.state && location.state.cartData) {
+      const { cartData } = location.state;
+      setCartData(cartData);
+    } else if (location.state && location.state.product) {
       const { product, quantity } = location.state;
-      
       const totalPrice = product.price * quantity;
       const taxAmount = totalPrice * 0.05;
       const grandTotal = totalPrice + taxAmount;
       
-      setOrderData({
-        product: product,
-        quantity: quantity,
+      setCartData({
+        cartItems: [{
+          ...product,
+          quantity: quantity,
+          price: product.price
+        }],
         subtotal: totalPrice,
-        taxAmount: taxAmount,
-        grandTotal: grandTotal,
-        customerId: getCustomerId()
+        tax: taxAmount,
+        deliveryCharge: 0,
+        discount: 0,
+        discountAmount: 0,
+        total: grandTotal,
+        fromSingleProduct: true
       });
     } else {
-      // If no product data, redirect to products
       navigate('/products');
     }
 
-    // Fetch addresses
     fetchAddresses();
   }, [location, navigate]);
 
@@ -146,7 +162,6 @@ const Checkout = () => {
 
   // Save new address
   const saveAddress = async () => {
-    // Validate address fields
     const required = ['full_name', 'mobile', 'address_line1', 'city', 'state', 'pincode'];
     for (let field of required) {
       if (!newAddress[field] || newAddress[field].trim() === '') {
@@ -165,16 +180,16 @@ const Checkout = () => {
     setSavingAddress(true);
 
     try {
-      const customerId = getCustomerId();
+      const currentCustomerId = getCustomerId();
       
-      if (!customerId) {
+      if (!currentCustomerId) {
         throw new Error('Please login to save address');
       }
 
       const addressPayload = {
         ...newAddress,
-        customer: customerId,
-        email: newAddress.email || `${customerId}@example.com`
+        customer: currentCustomerId,
+        email: newAddress.email || `${currentCustomerId}@example.com`
       };
 
       console.log('Saving address:', addressPayload);
@@ -203,13 +218,17 @@ const Checkout = () => {
         throw new Error(errorMsg);
       }
 
-      // Add new address to list
       const newAddressData = responseData.data || responseData;
-      setAddresses(prev => [...prev, newAddressData]);
-      setSelectedAddress(newAddressData);
+      const addressWithCustomer = {
+        ...newAddressData,
+        customer: currentCustomerId
+      };
+      
+      setAddresses(prev => [...prev, addressWithCustomer]);
+      // IMPORTANT FIX: Select the newly added address
+      setSelectedAddress(addressWithCustomer);
       setShowAddressForm(false);
       
-      // Reset form
       setNewAddress({
         address_type: 'Home',
         full_name: '',
@@ -250,9 +269,23 @@ const Checkout = () => {
     }
   };
 
-  // Select address
+  // FIXED: Select address - ensures proper selection
   const selectAddress = (address) => {
-    setSelectedAddress(address);
+    console.log('Selecting address:', address);
+    // Get the unique identifier for the address
+    const addressId = address.address_id || address.id;
+    // If this address is already selected, deselect it
+    const currentSelectedId = selectedAddress ? (selectedAddress.address_id || selectedAddress.id) : null;
+    
+    if (currentSelectedId === addressId) {
+      // If clicking the same address, deselect it
+      setSelectedAddress(null);
+      console.log('Deselected address');
+    } else {
+      // Select the new address
+      setSelectedAddress(address);
+      console.log('Selected new address:', address);
+    }
   };
 
   // Show address form
@@ -280,7 +313,7 @@ const Checkout = () => {
       return false;
     }
 
-    if (!orderData) {
+    if (!cartData) {
       Swal.fire({
         title: '❌ Error',
         text: 'Order data is missing. Please try again.',
@@ -304,62 +337,69 @@ const Checkout = () => {
     setLoading(true);
 
     try {
-      const customerId = getCustomerId();
+      const currentCustomerId = getCustomerId();
       
-      if (!customerId) {
+      if (!currentCustomerId) {
         throw new Error('Please login to place order');
       }
 
-      const { product, quantity, subtotal, taxAmount, grandTotal } = orderData;
+      const { cartItems, subtotal, tax, deliveryCharge, discount, discountAmount, total } = cartData;
       
       const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       const currentDate = new Date().toISOString();
       const expectedDelivery = new Date();
       expectedDelivery.setDate(expectedDelivery.getDate() + 7);
 
-      // Prepare order data
+      const orderItems = cartItems.map(item => ({
+        product: item.product_id || item.id,
+        quantity: item.quantity,
+        unit_price: item.price.toFixed(2),
+        total_price: (item.price * item.quantity).toFixed(2),
+        product_name: item.name,
+        category: item.category,
+        metal_type: item.metal,
+        purity: item.purity?.toString() || "0",
+        gross_weight: item.grossWeight?.toString() || item.weight?.replace('g', '') || "0",
+        net_weight: item.grossWeight?.toString() || item.weight?.replace('g', '') || "0",
+        making_charge: item.makingCharges?.toString() || "0.00",
+        gst_percentage: "5.00",
+        gst_amount: ((item.price * item.quantity) * 0.05).toFixed(2),
+        discount: discount > 0 ? ((item.price * item.quantity) * (discount / 100)).toFixed(2) : "0.00",
+        barcode: item.pcode || 'N/A',
+        stone_weight: "0.000",
+        wastage: "0.00"
+      }));
+
+      const addressId = selectedAddress.address_id || selectedAddress.id;
+      
+      if (!addressId) {
+        throw new Error('Invalid address selected');
+      }
+
       const orderPayload = {
         order_number: orderNumber,
         invoice_date: currentDate,
-        customer: customerId,
-        shipping_address: selectedAddress.address_id || selectedAddress.id,
-        billing_address: selectedAddress.address_id || selectedAddress.id,
+        customer: currentCustomerId,
+        shipping_address: addressId,
+        billing_address: addressId,
         subtotal: subtotal.toFixed(2),
-        discount: "0.00",
-        shipping_charge: "0.00",
-        tax_amount: taxAmount.toFixed(2),
-        grand_total: grandTotal.toFixed(2),
+        discount: discountAmount.toFixed(2),
+        shipping_charge: deliveryCharge.toFixed(2),
+        tax_amount: tax.toFixed(2),
+        grand_total: total.toFixed(2),
         payment_method: paymentMethod,
         payment_status: "Pending",
         order_status: "Pending",
-        remarks: `Order for ${product.name}`,
+        remarks: `Order with ${cartItems.length} items`,
         expected_delivery: expectedDelivery.toISOString().split('T')[0],
         delivered_at: null,
         cancelled_at: null,
-        items: [
-          {
-            product: product.id,
-            quantity: quantity,
-            unit_price: product.price.toFixed(2),
-            total_price: grandTotal.toFixed(2),
-            product_name: product.name,
-            category: product.category,
-            metal_type: product.metal,
-            purity: product.purity?.toString() || "0",
-            gross_weight: product.grossWeight?.toString() || "0",
-            net_weight: product.grossWeight?.toString() || "0",
-            making_charge: product.makingCharges?.toString() || "0.00",
-            gst_percentage: "5.00",
-            gst_amount: taxAmount.toFixed(2),
-            discount: "0.00",
-            barcode: product.pcode || 'N/A',
-            stone_weight: "0.000",
-            wastage: "0.00"
-          }
-        ]
+        items: orderItems
       };
 
-      console.log('Placing order:', orderPayload);
+      console.log('Placing order with address:', selectedAddress);
+      console.log('Address ID being used:', addressId);
+      console.log('Order payload:', orderPayload);
 
       const response = await fetch(`${baseURL}/api/orders/`, {
         method: 'POST',
@@ -385,19 +425,31 @@ const Checkout = () => {
         throw new Error(errorMsg);
       }
 
-      // Save order to localStorage
       const orderWithDetails = {
         ...orderPayload,
         id: responseData.id || responseData.order_id || `ORD-${Date.now()}`,
         created_at: currentDate,
-        is_offline: false
+        is_offline: false,
+        shipping_address_details: selectedAddress
       };
 
       const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
       existingOrders.unshift(orderWithDetails);
       localStorage.setItem('orders', JSON.stringify(existingOrders));
 
-      // Show success popup
+      try {
+        await fetch(`${baseURL}/api/cart/clear/?customer_id=${currentCustomerId}`, {
+          method: 'DELETE',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        });
+        localStorage.removeItem('cart');
+      } catch (e) {
+        console.warn('Failed to clear cart:', e);
+      }
+
       await Swal.fire({
         title: '🎉 Order Placed Successfully!',
         text: `Your order #${orderNumber} has been placed successfully.`,
@@ -447,7 +499,7 @@ const Checkout = () => {
     }
   };
 
-  if (!orderData) {
+  if (!cartData) {
     return (
       <div>
         <Navbar />
@@ -461,7 +513,7 @@ const Checkout = () => {
     );
   }
 
-  const { product, quantity, subtotal, taxAmount, grandTotal } = orderData;
+  const { cartItems, subtotal, tax, deliveryCharge, discount, discountAmount, total } = cartData;
 
   return (
     <div>
@@ -473,45 +525,60 @@ const Checkout = () => {
           <div className="checkout-grid">
             {/* Left Column - Order Items */}
             <div className="checkout-items">
-              <h2>Order Summary</h2>
-              <div className="order-item-card">
-                <div className="item-image">
-                  <img 
-                    src={product.image || 'https://via.placeholder.com/100/FFD700/FFFFFF?text=Jewellery'} 
-                    alt={product.name}
-                    onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/100/FFD700/FFFFFF?text=Jewellery';
-                    }}
-                  />
-                </div>
-                <div className="item-details">
-                  <h3>{product.name}</h3>
-                  <p className="item-category">{product.category}</p>
-                  <p className="item-meta">Metal: {product.metal} | Purity: {product.purity}%</p>
-                  <p className="item-meta">Weight: {product.weight}</p>
-                  <div className="item-price-detail">
-                    <span>₹{product.price.toLocaleString()} × {quantity}</span>
-                    <span className="item-total">= ₹{(product.price * quantity).toLocaleString()}</span>
+              <h2>Order Summary ({cartItems.length} items)</h2>
+              
+              {cartItems.map((item, index) => (
+                <div key={item.id || index} className="order-item-card">
+                  <div className="item-image">
+                    <img 
+                      src={item.image || 'https://via.placeholder.com/100/FFD700/FFFFFF?text=Jewellery'} 
+                      alt={item.name}
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/100/FFD700/FFFFFF?text=Jewellery';
+                      }}
+                    />
+                  </div>
+                  <div className="item-details">
+                    <h3>{item.name}</h3>
+                    <p className="item-category">{item.category}</p>
+                    <p className="item-meta">Metal: {item.metal} | Purity: {item.purity}%</p>
+                    <p className="item-meta">Weight: {item.weight}</p>
+                    <div className="item-price-detail">
+                      <span>₹{item.price.toLocaleString()} × {item.quantity}</span>
+                      <span className="item-total">= ₹{(item.price * item.quantity).toLocaleString()}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ))}
 
               <div className="order-totals">
                 <div className="total-row">
                   <span>Subtotal</span>
                   <span>₹{subtotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                 </div>
+                {deliveryCharge > 0 && (
+                  <div className="total-row">
+                    <span>Delivery Charges</span>
+                    <span>₹{deliveryCharge.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="total-row">
                   <span>Tax (5% GST)</span>
-                  <span>₹{taxAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                  <span>₹{tax.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                 </div>
+                {discount > 0 && (
+                  <div className="total-row discount-row">
+                    <span>Discount ({discount}% OFF)</span>
+                    <span>-₹{discountAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                  </div>
+                )}
                 <div className="total-row">
                   <span>Shipping</span>
-                  <span>FREE</span>
+                  <span>{deliveryCharge === 0 ? 'FREE' : '₹' + deliveryCharge.toFixed(2)}</span>
                 </div>
                 <div className="total-row grand-total">
                   <span>Grand Total</span>
-                  <span>₹{grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                  <span>₹{total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                 </div>
               </div>
             </div>
@@ -531,7 +598,6 @@ const Checkout = () => {
                   )}
                 </div>
 
-                {/* Show Address Form if no addresses or user clicked add */}
                 {showAddressForm ? (
                   <div className="address-form">
                     <div className="form-group">
@@ -665,9 +731,8 @@ const Checkout = () => {
                           className="cancel-btn"
                           onClick={() => {
                             setShowAddressForm(false);
-                            if (addresses.length > 0) {
-                              setSelectedAddress(addresses[0]);
-                            }
+                            // Don't auto-select any address when canceling
+                            setSelectedAddress(null);
                           }}
                         >
                           Cancel
@@ -683,61 +748,71 @@ const Checkout = () => {
                     </div>
                   </div>
                 ) : (
-                  /* Display saved addresses */
-                  <div className="saved-addresses">
+                  <div className="address-options">
                     {loadingAddresses ? (
                       <p>Loading addresses...</p>
                     ) : addresses.length > 0 ? (
                       <>
-                        {addresses.map((address) => (
-                          <div 
-                            key={address.address_id || address.id}
-                            className={`address-card ${selectedAddress?.address_id === address.address_id || selectedAddress?.id === address.id ? 'selected' : ''}`}
-                            onClick={() => selectAddress(address)}
-                          >
-                            <div className="address-radio">
-                              <input 
-                                type="radio" 
-                                checked={selectedAddress?.address_id === address.address_id || selectedAddress?.id === address.id}
-                                readOnly
-                              />
+                        {addresses.map((address, index) => {
+                          // Get the unique identifier for the address
+                          const addressId = address.address_id || address.id;
+                          // Check if this address is selected
+                          const selectedId = selectedAddress ? (selectedAddress.address_id || selectedAddress.id) : null;
+                          const isSelected = selectedId === addressId;
+                          
+                          return (
+                            <div 
+                              key={addressId}
+                              className={`address-option ${isSelected ? 'selected' : ''}`}
+                              onClick={() => selectAddress(address)}
+                            >
+                              <div className="address-radio">
+                                <input 
+                                  type="radio" 
+                                  name="address-selection"
+                                  checked={isSelected}
+                                  onChange={() => selectAddress(address)}
+                                  value={addressId}
+                                />
+                                <span className="address-label">Address {index + 1}</span>
+                              </div>
+                              <div className="address-content">
+                                <div className="address-name">{address.full_name}</div>
+                                <div className="address-type">
+                                  <span className="type-badge">{address.address_type}</span>
+                                  {address.is_default && <span className="default-badge">Default</span>}
+                                </div>
+                                <div className="address-detail">
+                                  {address.address_line1}
+                                  {address.address_line2 && `, ${address.address_line2}`}
+                                </div>
+                                <div className="address-detail">
+                                  {address.city}, {address.state} - {address.pincode}
+                                </div>
+                                <div className="address-detail">{address.country}</div>
+                                <div className="address-contact">
+                                  📱 {address.mobile}
+                                  {address.email && ` | ✉️ ${address.email}`}
+                                </div>
+                                {address.landmark && (
+                                  <div className="address-landmark">📍 {address.landmark}</div>
+                                )}
+                              </div>
                             </div>
-                            <div className="address-content">
-                              <div className="address-name">{address.full_name}</div>
-                              <div className="address-type">
-                                <span className="type-badge">{address.address_type}</span>
-                                {address.is_default && <span className="default-badge">Default</span>}
-                              </div>
-                              <div className="address-detail">
-                                {address.address_line1}
-                                {address.address_line2 && `, ${address.address_line2}`}
-                              </div>
-                              <div className="address-detail">
-                                {address.city}, {address.state} - {address.pincode}
-                              </div>
-                              <div className="address-detail">{address.country}</div>
-                              <div className="address-contact">
-                                📱 {address.mobile}
-                                {address.email && ` | ✉️ ${address.email}`}
-                              </div>
-                              {address.landmark && (
-                                <div className="address-landmark">📍 {address.landmark}</div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                        {!showAddressForm && (
-                          <button 
-                            className="add-address-card"
-                            onClick={handleAddAddress}
-                          >
-                            <span className="add-icon">+</span>
-                            <span>Add New Address</span>
-                          </button>
-                        )}
+                          );
+                        })}
+                        <button 
+                          className="add-address-card"
+                          onClick={handleAddAddress}
+                        >
+                          <span className="add-icon">+</span>
+                          <span>Add New Address</span>
+                        </button>
                       </>
                     ) : (
-                      <p>No addresses found. Please add a new address.</p>
+                      <div className="no-addresses">
+                        <p>No addresses found. Please add a new address.</p>
+                      </div>
                     )}
                   </div>
                 )}
@@ -779,6 +854,9 @@ const Checkout = () => {
               {!selectedAddress && addresses.length > 0 && !showAddressForm && (
                 <p className="select-address-warning">⚠️ Please select a shipping address</p>
               )}
+              {addresses.length === 0 && !showAddressForm && (
+                <p className="select-address-warning">⚠️ Please add a shipping address to continue</p>
+              )}
             </div>
           </div>
         </div>
@@ -803,6 +881,11 @@ const Checkout = () => {
           font-weight: 600 !important;
           padding: 10px 25px !important;
           border-radius: 8px !important;
+        }
+        .no-addresses {
+          padding: 20px;
+          text-align: center;
+          color: #aaa;
         }
       `}</style>
     </div>

@@ -12,10 +12,14 @@ const LoginNavbar = () => {
     navigate('/login');
   };
 
+  const handleSignupClick = () => {
+    navigate('/customerregister');
+  };
+
   return (
-    <nav className="login-navbar">
+    <nav className="login-navbar-custom">
       <div className="login-navbar-container">
-        {/* Logo - Left side */}
+        {/* Logo - Left side with Brand Name */}
         <div className="login-navbar-logo">
           <Link to="/">
             <img
@@ -27,12 +31,25 @@ const LoginNavbar = () => {
                 e.target.style.display = 'none';
               }}
             />
-            <span className="login-logo-text">MANIKANTHA JEWELLERS</span>
+            <div className="login-brand-text">
+              <span className="login-brand-name">MANIKANTHA</span>
+              <span className="login-brand-subtitle">JEWELLERS</span>
+            </div>
           </Link>
         </div>
 
-        {/* Login Button - Right side */}
+        {/* Action Buttons - Right side */}
         <div className="login-navbar-actions">
+          {/* Signup Button */}
+          {/* <button 
+            className="signup-btn"
+            onClick={handleSignupClick}
+          >
+            <i className="bi bi-person-plus"></i>
+            <span>Signup</span>
+          </button> */}
+
+          {/* Login Button */}
           <button 
             className="login-btn"
             onClick={handleLoginClick}

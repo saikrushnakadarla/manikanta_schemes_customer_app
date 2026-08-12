@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './CartPage.css';
 import Navbar from '../Navbar/Navbar';
 import Footer from '../Footer/Footer';
 import baseURL from '../URL/BaseURL';
 
 const CartPage = () => {
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [promoCode, setPromoCode] = useState('');
   const [discount, setDiscount] = useState(0);
@@ -81,7 +83,12 @@ const CartPage = () => {
           quantity: item.quantity || 1,
           total_price: parseFloat(item.total_price) || 0,
           purity: item.product_details.purity,
-          product_details: item.product_details
+          product_details: item.product_details,
+          // Additional fields for checkout
+          grossWeight: item.product_details.gross_weight || '0',
+          makingCharges: item.product_details.making_charge || '0',
+          pcode: item.product_details.pcode || '',
+          product_id: item.product_details.id || item.product_id
         }));
         
         setCartItems(transformedItems);
@@ -331,6 +338,35 @@ const CartPage = () => {
   const discountAmount = Math.round(subtotal * (discount / 100));
   const total = subtotal + deliveryCharge + tax - discountAmount;
 
+  // Navigate to checkout with cart data
+  const handleProceedToCheckout = () => {
+    if (cartItems.length === 0) {
+      alert('Your cart is empty!');
+      return;
+    }
+
+    // Prepare cart data for checkout
+    const checkoutData = {
+      cartItems: cartItems,
+      subtotal: subtotal,
+      tax: tax,
+      deliveryCharge: deliveryCharge,
+      discount: discount,
+      discountAmount: discountAmount,
+      total: total,
+      cartId: cartId,
+      appliedPromo: appliedPromo
+    };
+
+    // Navigate to checkout with cart data
+    navigate('/checkout', { 
+      state: { 
+        cartData: checkoutData,
+        fromCart: true
+      } 
+    });
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -396,8 +432,12 @@ const CartPage = () => {
                 <span>Total: ₹{total.toLocaleString()}</span>
                 <span className="item-count">{cartItems.length} items</span>
               </div>
-              <button className="checkout-btn-mobile">
-                Proceed to Checkout
+              <button 
+                className="checkout-btn-mobile"
+                onClick={handleProceedToCheckout}
+                disabled={clearingCart}
+              >
+                {clearingCart ? '⏳ Processing...' : 'Proceed to Checkout'}
               </button>
             </div>
 
@@ -550,6 +590,7 @@ const CartPage = () => {
             
             <button 
               className="checkout-btn"
+              onClick={handleProceedToCheckout}
               disabled={clearingCart}
             >
               {clearingCart ? '⏳ Processing...' : 'Proceed to Checkout'}
