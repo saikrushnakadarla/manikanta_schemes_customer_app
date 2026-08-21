@@ -18,7 +18,6 @@ const Checkout = () => {
   const [loadingAddresses, setLoadingAddresses] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
   const [customerId, setCustomerId] = useState(null);
-  const [cartId, setCartId] = useState(null);
   const [newAddress, setNewAddress] = useState({
     address_type: 'Home',
     full_name: '',
@@ -52,27 +51,6 @@ const Checkout = () => {
     
     if (customerId) {
       return parseInt(customerId);
-    }
-    
-    return null;
-  };
-
-  // Get cart ID from localStorage or cart data
-  const getCartId = () => {
-    // First check localStorage
-    const cartIdFromStorage = localStorage.getItem('cartId');
-    if (cartIdFromStorage) {
-      return parseInt(cartIdFromStorage);
-    }
-    
-    // Then check cartData state
-    if (cartData && cartData.cartId) {
-      return cartData.cartId;
-    }
-    
-    // Finally try to get from location state
-    if (location.state && location.state.cartData && location.state.cartData.cartId) {
-      return location.state.cartData.cartId;
     }
     
     return null;
@@ -146,12 +124,6 @@ const Checkout = () => {
     if (location.state && location.state.cartData) {
       const { cartData } = location.state;
       setCartData(cartData);
-      
-      // Get cart ID from cart data
-      if (cartData && cartData.cartId) {
-        setCartId(cartData.cartId);
-        localStorage.setItem('cartId', cartData.cartId);
-      }
     } else if (location.state && location.state.product) {
       const { product, quantity } = location.state;
       const totalPrice = product.price * quantity;
@@ -353,475 +325,7 @@ const Checkout = () => {
       return false;
     }
 
-    // For Online payment, we need to ensure we have a cart ID
-    if (paymentMethod === 'Online') {
-      const currentCartId = getCartId();
-      console.log('Validating cart ID:', currentCartId);
-      if (!currentCartId) {
-        Swal.fire({
-          title: '⚠️ Cart Error',
-          text: 'Unable to process payment. Cart information is missing. Please add items to cart and try again.',
-          icon: 'warning',
-          confirmButtonColor: '#C9A84C',
-          background: '#1a1a1a',
-          color: '#ffffff',
-        });
-        return false;
-      }
-    }
-
     return true;
-  };
-
-  // Initialize Razorpay payment
-  const initializeRazorpay = (orderData, razorpayData, paymentTransactionId) => {
-    return new Promise((resolve, reject) => {
-      // Load Razorpay script if not already loaded
-      if (!window.Razorpay) {
-        const script = document.createElement('script');
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.onload = () => {
-          resolve(createRazorpayInstance(orderData, razorpayData, paymentTransactionId));
-        };
-        script.onerror = () => {
-          reject(new Error('Failed to load Razorpay SDK'));
-        };
-        document.body.appendChild(script);
-      } else {
-        resolve(createRazorpayInstance(orderData, razorpayData, paymentTransactionId));
-      }
-    });
-  };
-
-  // Create Razorpay instance
-  const createRazorpayInstance = (orderData, razorpayData, paymentTransactionId) => {
-    const options = {
-      key: razorpayData.key,
-      amount: razorpayData.amount,
-      currency: razorpayData.currency,
-      name: 'Jewellery Store',
-      description: `Order ${orderData.order_number}`,
-      order_id: razorpayData.razorpay_order_id,
-      handler: function (response) {
-        // Payment successful - verify with backend
-        handlePaymentSuccess(response, orderData, paymentTransactionId);
-      },
-      prefill: {
-        name: selectedAddress?.full_name || '',
-        email: selectedAddress?.email || '',
-        contact: selectedAddress?.mobile || '',
-      },
-      theme: {
-        color: '#C9A84C',
-      },
-      modal: {
-        ondismiss: function() {
-          // Payment modal closed without completion
-          setLoading(false);
-          Swal.fire({
-            title: 'Payment Cancelled',
-            text: 'You cancelled the payment process.',
-            icon: 'info',
-            confirmButtonColor: '#C9A84C',
-            background: '#1a1a1a',
-            color: '#ffffff',
-          });
-        }
-      }
-    };
-
-    const razorpay = new window.Razorpay(options);
-    razorpay.on('payment.failed', function (response) {
-      // Payment failed
-      handlePaymentFailure(response);
-    });
-    
-    return razorpay;
-  };
-
-  // Handle successful payment
-  const handlePaymentSuccess = async (response, orderData, paymentTransactionId) => {
-    try {
-      // Verify payment on backend
-      const verifyResponse = await fetch(`${baseURL}/api/verify-payment/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          razorpay_order_id: response.razorpay_order_id,
-          razorpay_payment_id: response.razorpay_payment_id,
-          razorpay_signature: response.razorpay_signature
-        })
-      });
-
-      const verifyData = await verifyResponse.json();
-      console.log('Payment verification response:', verifyData);
-
-      if (verifyResponse.ok && verifyData.status) {
-        // Payment verified successfully
-        const orderWithDetails = {
-          ...orderData,
-          id: orderData.order_id,
-          created_at: new Date().toISOString(),
-          is_offline: false,
-          shipping_address_details: selectedAddress,
-          payment_id: response.razorpay_payment_id,
-          payment_status: 'Paid',
-          order_status: 'Confirmed'
-        };
-
-        const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-        existingOrders.unshift(orderWithDetails);
-        localStorage.setItem('orders', JSON.stringify(existingOrders));
-
-        // Clear cart
-        try {
-          const currentCustomerId = getCustomerId();
-          await fetch(`${baseURL}/api/cart/clear/?customer_id=${currentCustomerId}`, {
-            method: 'DELETE',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-            },
-          });
-          localStorage.removeItem('cart');
-          localStorage.removeItem('cartId');
-        } catch (e) {
-          console.warn('Failed to clear cart:', e);
-        }
-
-        setLoading(false);
-
-        await Swal.fire({
-          title: '🎉 Payment Successful!',
-          text: `Your order #${orderData.order_number} has been placed and payment confirmed.`,
-          icon: 'success',
-          showConfirmButton: true,
-          confirmButtonColor: '#C9A84C',
-          confirmButtonText: '📋 View Order',
-          showCancelButton: true,
-          cancelButtonColor: '#d33',
-          cancelButtonText: 'Continue Shopping',
-          background: '#1a1a1a',
-          color: '#ffffff',
-          backdrop: 'rgba(0,0,0,0.8)',
-          customClass: {
-            confirmButton: 'swal-confirm-btn',
-            cancelButton: 'swal-cancel-btn',
-            popup: 'swal-popup-custom'
-          }
-        }).then((result) => {
-          if (result.isConfirmed) {
-            navigate('/order-confirmation', { 
-              state: { 
-                order: orderWithDetails,
-                orderId: orderData.order_id 
-              } 
-            });
-          } else {
-            navigate('/products');
-          }
-        });
-      } else {
-        throw new Error(verifyData.message || 'Payment verification failed');
-      }
-    } catch (error) {
-      console.error('Payment verification error:', error);
-      setLoading(false);
-      Swal.fire({
-        title: '❌ Payment Verification Failed',
-        text: error.message || 'Unable to verify payment. Please contact support.',
-        icon: 'error',
-        confirmButtonColor: '#d33',
-        background: '#1a1a1a',
-        color: '#ffffff',
-      });
-    }
-  };
-
-  // Handle payment failure
-  const handlePaymentFailure = (response) => {
-    setLoading(false);
-    Swal.fire({
-      title: '❌ Payment Failed',
-      text: response.error?.description || 'Payment was unsuccessful. Please try again.',
-      icon: 'error',
-      confirmButtonColor: '#d33',
-      background: '#1a1a1a',
-      color: '#ffffff',
-    });
-  };
-
-  // Create order and initiate payment
-  const createOrderAndPayment = async () => {
-    setLoading(true);
-
-    try {
-      const currentCustomerId = getCustomerId();
-      const currentCartId = getCartId();
-
-      console.log('Current Customer ID:', currentCustomerId);
-      console.log('Current Cart ID:', currentCartId);
-
-      if (!currentCustomerId) {
-        throw new Error('Please login to place order');
-      }
-
-      if (!currentCartId) {
-        throw new Error('Cart ID not found. Please add items to cart and try again.');
-      }
-
-      const addressId = selectedAddress.address_id || selectedAddress.id;
-      
-      if (!addressId) {
-        throw new Error('Invalid address selected');
-      }
-
-      // Prepare payment payload according to backend API
-      const paymentPayload = {
-        cart_id: parseInt(currentCartId),
-        shipping_address: parseInt(addressId),
-        billing_address: parseInt(addressId),
-        payment_method: 'Online',
-        remarks: 'Order from checkout page',
-        customer_id: parseInt(currentCustomerId)
-      };
-
-      console.log('Payment payload:', paymentPayload);
-
-      // Call the checkout API - Fix the URL to avoid double slash
-      const checkoutUrl = `${baseURL}/api/checkout/`.replace(/([^:]\/)\/+/g, "$1");
-      console.log('Checkout URL:', checkoutUrl);
-
-      const response = await fetch(checkoutUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(paymentPayload)
-      });
-
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-
-      // Get response text first for debugging
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
-
-      let responseData;
-      try {
-        responseData = responseText ? JSON.parse(responseText) : {};
-        console.log('Parsed response:', responseData);
-      } catch (e) {
-        console.error('Error parsing response:', e);
-        // If response is HTML or error traceback, show it
-        if (responseText.includes('<!DOCTYPE') || responseText.includes('Traceback')) {
-          Swal.fire({
-            title: '❌ Server Error',
-            text: 'The server returned an error. Please check your backend configuration.',
-            icon: 'error',
-            confirmButtonColor: '#d33',
-            background: '#1a1a1a',
-            color: '#ffffff',
-          });
-          setLoading(false);
-          return;
-        }
-        responseData = {};
-      }
-
-      if (!response.ok) {
-        const errorMsg = responseData.message || responseData.error || responseData.detail || `Server error (${response.status})`;
-        throw new Error(errorMsg);
-      }
-
-      if (responseData.status && responseData.razorpay) {
-        // Payment initiated successfully, proceed with Razorpay
-        const razorpayInstance = await initializeRazorpay(
-          responseData.order, 
-          responseData.razorpay,
-          responseData.payment_transaction_id
-        );
-        razorpayInstance.open();
-      } else {
-        throw new Error(responseData.message || 'Payment initiation failed. Please try again.');
-      }
-
-    } catch (err) {
-      console.error('Error processing order:', err);
-      setLoading(false);
-      
-      Swal.fire({
-        title: '❌ Order Failed!',
-        text: err.message || 'Failed to place order. Please try again.',
-        icon: 'error',
-        confirmButtonColor: '#d33',
-        confirmButtonText: 'OK',
-        background: '#1a1a1a',
-        color: '#ffffff',
-        backdrop: 'rgba(0,0,0,0.8)'
-      });
-    }
-  };
-
-  // Place COD order
-  const placeCODOrder = async () => {
-    setLoading(true);
-
-    try {
-      const currentCustomerId = getCustomerId();
-      const currentCartId = getCartId();
-
-      if (!currentCustomerId) {
-        throw new Error('Please login to place order');
-      }
-
-      if (!currentCartId) {
-        throw new Error('Cart ID not found. Please add items to cart and try again.');
-      }
-
-      const addressId = selectedAddress.address_id || selectedAddress.id;
-      
-      if (!addressId) {
-        throw new Error('Invalid address selected');
-      }
-
-      const paymentPayload = {
-        cart_id: parseInt(currentCartId),
-        shipping_address: parseInt(addressId),
-        billing_address: parseInt(addressId),
-        payment_method: 'COD',
-        remarks: 'COD order from checkout page',
-        customer_id: parseInt(currentCustomerId)
-      };
-
-      console.log('COD payment payload:', paymentPayload);
-
-      const checkoutUrl = `${baseURL}/api/checkout/`.replace(/([^:]\/)\/+/g, "$1");
-      
-      const response = await fetch(checkoutUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(paymentPayload)
-      });
-
-      const responseText = await response.text();
-      console.log('Raw COD response:', responseText);
-
-      let responseData;
-      try {
-        responseData = responseText ? JSON.parse(responseText) : {};
-        console.log('Parsed COD response:', responseData);
-      } catch (e) {
-        console.error('Error parsing response:', e);
-        if (responseText.includes('<!DOCTYPE') || responseText.includes('Traceback')) {
-          Swal.fire({
-            title: '❌ Server Error',
-            text: 'The server returned an error. Please check your backend configuration.',
-            icon: 'error',
-            confirmButtonColor: '#d33',
-            background: '#1a1a1a',
-            color: '#ffffff',
-          });
-          setLoading(false);
-          return;
-        }
-        responseData = {};
-      }
-
-      if (!response.ok) {
-        const errorMsg = responseData.message || responseData.error || responseData.detail || `Server error (${response.status})`;
-        throw new Error(errorMsg);
-      }
-
-      if (responseData.status) {
-        // Handle COD order
-        const orderData = responseData.order || {};
-        const orderWithDetails = {
-          ...orderData,
-          id: orderData.order_id || orderData.id,
-          created_at: new Date().toISOString(),
-          is_offline: false,
-          shipping_address_details: selectedAddress,
-          payment_status: 'Pending',
-          order_status: 'Confirmed'
-        };
-
-        const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-        existingOrders.unshift(orderWithDetails);
-        localStorage.setItem('orders', JSON.stringify(existingOrders));
-
-        try {
-          await fetch(`${baseURL}/api/cart/clear/?customer_id=${currentCustomerId}`, {
-            method: 'DELETE',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-            },
-          });
-          localStorage.removeItem('cart');
-          localStorage.removeItem('cartId');
-        } catch (e) {
-          console.warn('Failed to clear cart:', e);
-        }
-
-        setLoading(false);
-
-        await Swal.fire({
-          title: '🎉 Order Placed Successfully!',
-          text: `Your order #${orderData.order_number || 'N/A'} has been placed with Cash on Delivery.`,
-          icon: 'success',
-          showConfirmButton: true,
-          confirmButtonColor: '#C9A84C',
-          confirmButtonText: '📋 View Order',
-          showCancelButton: true,
-          cancelButtonColor: '#d33',
-          cancelButtonText: 'Continue Shopping',
-          background: '#1a1a1a',
-          color: '#ffffff',
-          backdrop: 'rgba(0,0,0,0.8)',
-          customClass: {
-            confirmButton: 'swal-confirm-btn',
-            cancelButton: 'swal-cancel-btn',
-            popup: 'swal-popup-custom'
-          }
-        }).then((result) => {
-          if (result.isConfirmed) {
-            navigate('/order-confirmation', { 
-              state: { 
-                order: orderWithDetails,
-                orderId: orderData.order_id || orderData.id
-              } 
-            });
-          } else {
-            navigate('/products');
-          }
-        });
-      } else {
-        throw new Error(responseData.message || 'Order placement failed');
-      }
-
-    } catch (err) {
-      console.error('Error placing COD order:', err);
-      setLoading(false);
-      
-      Swal.fire({
-        title: '❌ Order Failed!',
-        text: err.message || 'Failed to place order. Please try again.',
-        icon: 'error',
-        confirmButtonColor: '#d33',
-        confirmButtonText: 'OK',
-        background: '#1a1a1a',
-        color: '#ffffff',
-        backdrop: 'rgba(0,0,0,0.8)'
-      });
-    }
   };
 
   // Place order
@@ -830,12 +334,168 @@ const Checkout = () => {
       return;
     }
 
-    if (paymentMethod === 'Online') {
-      // Use the payment flow for Online payments
-      await createOrderAndPayment();
-    } else {
-      // For COD
-      await placeCODOrder();
+    setLoading(true);
+
+    try {
+      const currentCustomerId = getCustomerId();
+      
+      if (!currentCustomerId) {
+        throw new Error('Please login to place order');
+      }
+
+      const { cartItems, subtotal, tax, deliveryCharge, discount, discountAmount, total } = cartData;
+      
+      const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      const currentDate = new Date().toISOString();
+      const expectedDelivery = new Date();
+      expectedDelivery.setDate(expectedDelivery.getDate() + 7);
+
+      const orderItems = cartItems.map(item => ({
+        product: item.product_id || item.id,
+        quantity: item.quantity,
+        unit_price: item.price.toFixed(2),
+        total_price: (item.price * item.quantity).toFixed(2),
+        product_name: item.name,
+        category: item.category,
+        metal_type: item.metal,
+        purity: item.purity?.toString() || "0",
+        gross_weight: item.grossWeight?.toString() || item.weight?.replace('g', '') || "0",
+        net_weight: item.grossWeight?.toString() || item.weight?.replace('g', '') || "0",
+        making_charge: item.makingCharges?.toString() || "0.00",
+        gst_percentage: "5.00",
+        gst_amount: ((item.price * item.quantity) * 0.05).toFixed(2),
+        discount: discount > 0 ? ((item.price * item.quantity) * (discount / 100)).toFixed(2) : "0.00",
+        barcode: item.pcode || 'N/A',
+        stone_weight: "0.000",
+        wastage: "0.00"
+      }));
+
+      const addressId = selectedAddress.address_id || selectedAddress.id;
+      
+      if (!addressId) {
+        throw new Error('Invalid address selected');
+      }
+
+      const orderPayload = {
+        order_number: orderNumber,
+        invoice_date: currentDate,
+        customer: currentCustomerId,
+        shipping_address: addressId,
+        billing_address: addressId,
+        subtotal: subtotal.toFixed(2),
+        discount: discountAmount.toFixed(2),
+        shipping_charge: deliveryCharge.toFixed(2),
+        tax_amount: tax.toFixed(2),
+        grand_total: total.toFixed(2),
+        payment_method: paymentMethod,
+        payment_status: "Pending",
+        order_status: "Pending",
+        remarks: `Order with ${cartItems.length} items`,
+        expected_delivery: expectedDelivery.toISOString().split('T')[0],
+        delivered_at: null,
+        cancelled_at: null,
+        items: orderItems
+      };
+
+      console.log('Placing order with address:', selectedAddress);
+      console.log('Address ID being used:', addressId);
+      console.log('Order payload:', orderPayload);
+
+      const response = await fetch(`${baseURL}/api/orders/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(orderPayload)
+      });
+
+      let responseData;
+      try {
+        const text = await response.text();
+        responseData = text ? JSON.parse(text) : {};
+        console.log('Order response:', responseData);
+      } catch (e) {
+        console.error('Error parsing response:', e);
+        responseData = {};
+      }
+
+      if (!response.ok) {
+        const errorMsg = responseData.message || responseData.error || responseData.detail || `HTTP error! status: ${response.status}`;
+        throw new Error(errorMsg);
+      }
+
+      const orderWithDetails = {
+        ...orderPayload,
+        id: responseData.id || responseData.order_id || `ORD-${Date.now()}`,
+        created_at: currentDate,
+        is_offline: false,
+        shipping_address_details: selectedAddress
+      };
+
+      const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+      existingOrders.unshift(orderWithDetails);
+      localStorage.setItem('orders', JSON.stringify(existingOrders));
+
+      try {
+        await fetch(`${baseURL}/api/cart/clear/?customer_id=${currentCustomerId}`, {
+          method: 'DELETE',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        });
+        localStorage.removeItem('cart');
+      } catch (e) {
+        console.warn('Failed to clear cart:', e);
+      }
+
+      await Swal.fire({
+        title: '🎉 Order Placed Successfully!',
+        text: `Your order #${orderNumber} has been placed successfully.`,
+        icon: 'success',
+        showConfirmButton: true,
+        confirmButtonColor: '#C9A84C',
+        confirmButtonText: '📋 View Order',
+        showCancelButton: true,
+        cancelButtonColor: '#d33',
+        cancelButtonText: 'Continue Shopping',
+        background: '#1a1a1a',
+        color: '#ffffff',
+        backdrop: 'rgba(0,0,0,0.8)',
+        customClass: {
+          confirmButton: 'swal-confirm-btn',
+          cancelButton: 'swal-cancel-btn',
+          popup: 'swal-popup-custom'
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate('/order-confirmation', { 
+            state: { 
+              order: orderWithDetails,
+              orderId: responseData.id || responseData.order_id 
+            } 
+          });
+        } else {
+          navigate('/products');
+        }
+      });
+
+    } catch (err) {
+      console.error('Error placing order:', err);
+      
+      Swal.fire({
+        title: '❌ Order Failed!',
+        text: err.message || 'Failed to place order. Please try again.',
+        icon: 'error',
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'OK',
+        background: '#1a1a1a',
+        color: '#ffffff',
+        backdrop: 'rgba(0,0,0,0.8)'
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1189,7 +849,7 @@ const Checkout = () => {
                 onClick={placeOrder}
                 disabled={loading || !selectedAddress}
               >
-                {loading ? '⏳ Processing...' : '🛒 Place Order Now'}
+                {loading ? '⏳ Placing Order...' : '🛒 Place Order Now'}
               </button>
               {!selectedAddress && addresses.length > 0 && !showAddressForm && (
                 <p className="select-address-warning">⚠️ Please select a shipping address</p>

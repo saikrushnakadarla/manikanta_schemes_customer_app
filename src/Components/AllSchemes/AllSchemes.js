@@ -6,16 +6,27 @@ import Navbar from '../Navbar/Navbar';
 import Footer from '../Footer/Footer';
 import baseURL from '../URL/BaseURL';
 
+// Load Razorpay script dynamically
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
+
 const AllSchemes = () => {
   const navigate = useNavigate();
   const [schemes, setSchemes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedScheme, setSelectedScheme] = useState(null);
   const [customerId, setCustomerId] = useState(null);
   const [customerData, setCustomerData] = useState(null);
   const [enrolledSchemes, setEnrolledSchemes] = useState([]);
   const [loadingEnrollments, setLoadingEnrollments] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   // Get current logged-in customer ID from localStorage
   const getCustomerId = () => {
@@ -81,7 +92,6 @@ const AllSchemes = () => {
         return;
       }
 
-      // Use the new API endpoint: /api/customer/schemes/{customer_id}/
       const response = await fetch(`${baseURL}/api/customer/schemes/${id}/`, {
         method: 'GET',
         headers: {
@@ -97,7 +107,6 @@ const AllSchemes = () => {
       const data = await response.json();
       console.log('Enrolled schemes data:', data);
       
-      // Handle the response format
       let enrollmentsList = [];
       if (data && data.status === 'success' && data.data && Array.isArray(data.data)) {
         enrollmentsList = data.data;
@@ -111,7 +120,6 @@ const AllSchemes = () => {
         enrollmentsList = [];
       }
 
-      // Filter only active enrollments
       const activeEnrollments = enrollmentsList.filter(
         enrollment => enrollment.status === 'active' || enrollment.status === 'Active'
       );
@@ -157,7 +165,6 @@ const AllSchemes = () => {
       const data = await response.json();
       console.log('Schemes data:', data);
       
-      // Handle different response formats
       let schemesList = [];
       if (Array.isArray(data)) {
         schemesList = data;
@@ -273,7 +280,173 @@ const AllSchemes = () => {
     return true;
   };
 
-  // Handle enroll now
+  // Process Razorpay payment
+  const processRazorpayPayment = async (paymentData) => {
+    try {
+      // Load Razorpay script
+      const isScriptLoaded = await loadRazorpayScript();
+      if (!isScriptLoaded) {
+        throw new Error('Failed to load Razorpay SDK. Please check your internet connection.');
+      }
+
+      const options = {
+        key: paymentData.key,
+        amount: paymentData.amount,
+        currency: paymentData.currency,
+        name: 'Scheme Enrollment',
+        description: `Payment for ${paymentData.scheme_name}`,
+        order_id: paymentData.order_id,
+        handler: async function (response) {
+          // Payment successful - now create enrollment
+          await createEnrollmentAfterPayment(
+            paymentData.customer_id,
+            paymentData.scheme_id,
+            response.razorpay_payment_id,
+            paymentData.transaction_id
+          );
+        },
+        prefill: {
+          name: paymentData.customer_name || 'Customer',
+          email: customerData?.email || '',
+          contact: customerData?.phone || '',
+        },
+        theme: {
+          color: '#C9A84C',
+        },
+        modal: {
+          ondismiss: function() {
+            setProcessingPayment(false);
+            Swal.fire({
+              title: 'Payment Cancelled',
+              text: 'You have cancelled the payment process.',
+              icon: 'info',
+              confirmButtonColor: '#C9A84C',
+              background: '#1a1a1a',
+              color: '#ffffff',
+            });
+          }
+        }
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+      
+    } catch (error) {
+      console.error('Razorpay error:', error);
+      setProcessingPayment(false);
+      Swal.fire({
+        title: '❌ Payment Error',
+        text: error.message || 'Failed to initiate payment. Please try again.',
+        icon: 'error',
+        confirmButtonColor: '#d33',
+        background: '#1a1a1a',
+        color: '#ffffff',
+      });
+    }
+  };
+
+  // Create enrollment after successful payment
+  const createEnrollmentAfterPayment = async (customerId, schemeId, paymentId, transactionId) => {
+    try {
+      const scheme = schemes.find(s => s.scheme_id === schemeId);
+      const enrollmentDate = new Date().toISOString().split('T')[0];
+      const maturityDate = calculateMaturityDate(enrollmentDate, scheme.scheme_maturity_period);
+      const enrollmentNumber = generateEnrollmentNumber();
+
+      const enrollmentData = {
+        customer: customerId,
+        scheme: schemeId,
+        enrollment_date: enrollmentDate,
+        maturity_date: maturityDate,
+        enrollment_number: enrollmentNumber,
+        remarks: `Enrolled in ${scheme.scheme_name}`,
+        status: 'active',
+        paid_installments: 1, // First installment paid
+        total_paid_amount: scheme.scheme_installment_amount,
+        payment_id: paymentId,
+        transaction_id: transactionId,
+      };
+
+      console.log('Creating enrollment with data:', enrollmentData);
+
+      const response = await fetch(`${baseURL}/api/customer-scheme-enrollments/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(enrollmentData),
+      });
+
+      let responseData;
+      try {
+        const text = await response.text();
+        responseData = text ? JSON.parse(text) : {};
+        console.log('Enrollment response:', responseData);
+      } catch (e) {
+        console.error('Error parsing response:', e);
+        responseData = {};
+      }
+
+      if (!response.ok) {
+        const errorMsg = responseData.message || responseData.error || responseData.detail || `HTTP error! status: ${response.status}`;
+        throw new Error(errorMsg);
+      }
+
+      // Refresh enrolled schemes
+      await fetchEnrolledSchemes();
+
+      // Success
+      await Swal.fire({
+        title: '🎉 Enrollment Successful!',
+        html: `
+          <div style="text-align: center; color: #fff;">
+            <p>You have successfully enrolled in <strong>${scheme.scheme_name}</strong>!</p>
+            <p style="font-size: 14px; color: #aaa; margin-top: 10px;">
+              Enrollment Number: <strong style="color: #C9A84C;">${enrollmentNumber}</strong>
+            </p>
+            <p style="font-size: 14px; color: #aaa;">
+              First Installment: <strong style="color: #28a745;">${formatCurrency(scheme.scheme_installment_amount)}</strong> paid
+            </p>
+            <p style="font-size: 14px; color: #aaa;">
+              Payment ID: <strong>${paymentId}</strong>
+            </p>
+            <p style="font-size: 14px; color: #aaa;">
+              Maturity Date: <strong>${formatDate(maturityDate)}</strong>
+            </p>
+          </div>
+        `,
+        icon: 'success',
+        confirmButtonColor: '#C9A84C',
+        confirmButtonText: '📋 View My Enrollments',
+        showCancelButton: true,
+        cancelButtonText: 'Continue Browsing',
+        background: '#1a1a1a',
+        color: '#ffffff',
+        backdrop: 'rgba(0,0,0,0.8)',
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate('/my-enrollments');
+        }
+      });
+
+    } catch (err) {
+      console.error('Error creating enrollment:', err);
+      
+      Swal.fire({
+        title: '⚠️ Enrollment Issue',
+        text: 'Payment was successful but enrollment creation failed. Please contact support.',
+        icon: 'warning',
+        confirmButtonColor: '#C9A84C',
+        background: '#1a1a1a',
+        color: '#ffffff',
+      });
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
+  // Handle enroll now with payment
   const handleEnrollNow = async (scheme) => {
     // Check if customer is logged in
     if (!checkCustomerLogin()) {
@@ -320,13 +493,13 @@ const AllSchemes = () => {
       return;
     }
 
-    // Show enrollment confirmation
+    // Show enrollment confirmation with payment details
     const result = await Swal.fire({
-      title: '🌟 Enroll in Scheme',
+      title: '🌟 Enroll & Pay First Installment',
       html: `
         <div style="text-align: left; color: #fff;">
           <p><strong>Scheme:</strong> ${scheme.scheme_name}</p>
-          <p><strong>Installment:</strong> ${formatCurrency(scheme.scheme_installment_amount)}/month</p>
+          <p><strong>First Installment:</strong> ${formatCurrency(scheme.scheme_installment_amount)}</p>
           <p><strong>Total Investment:</strong> ${formatCurrency(calculateTotalInvestment(scheme))}</p>
           <p><strong>Benefit:</strong> ${getBenefitDescription(scheme)}</p>
           <p><strong>Maturity:</strong> ${scheme.scheme_maturity_period} months</p>
@@ -335,10 +508,13 @@ const AllSchemes = () => {
             <strong>Customer ID:</strong> ${customerId}<br>
             <strong>Customer Name:</strong> ${customerData?.account_name || 'N/A'}
           </p>
+          <p style="font-size: 12px; color: #888; margin-top: 10px;">
+            💳 You will be redirected to make the first installment payment
+          </p>
         </div>
       `,
       icon: 'info',
-      confirmButtonText: '✅ Confirm Enrollment',
+      confirmButtonText: '💳 Pay Now',
       showCancelButton: true,
       cancelButtonText: 'Cancel',
       confirmButtonColor: '#C9A84C',
@@ -353,42 +529,39 @@ const AllSchemes = () => {
       return;
     }
 
-    // Proceed with enrollment
-    setLoading(true);
+    // Proceed with payment initiation
+    setProcessingPayment(true);
 
     try {
-      const enrollmentDate = new Date().toISOString().split('T')[0];
-      const maturityDate = calculateMaturityDate(enrollmentDate, scheme.scheme_maturity_period);
-      const enrollmentNumber = generateEnrollmentNumber();
-
-      const enrollmentData = {
-        customer: customerId,
-        scheme: scheme.scheme_id,
-        enrollment_date: enrollmentDate,
-        maturity_date: maturityDate,
-        enrollment_number: enrollmentNumber,
-        remarks: `Enrolled in ${scheme.scheme_name}`,
-        status: 'active',
-        paid_installments: 0,
-        total_paid_amount: 0,
+      // Initiate payment - CORRECTED URL with /api/ prefix
+      const paymentPayload = {
+        customer_id: customerId,
+        scheme_id: scheme.scheme_id
       };
 
-      console.log('Enrollment Data:', enrollmentData);
+      console.log('Initiating payment with payload:', paymentPayload);
 
-      const response = await fetch(`${baseURL}/api/customer-scheme-enrollments/`, {
+      // FIXED: Added /api/ prefix to match Django URL patterns
+      const paymentUrl = `${baseURL}/api/scheme-enrollment/initiate-payment/`;
+      console.log('Payment URL:', paymentUrl);
+
+      const response = await fetch(paymentUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify(enrollmentData),
+        body: JSON.stringify(paymentPayload),
       });
+
+      console.log('Response status:', response.status);
 
       let responseData;
       try {
         const text = await response.text();
+        console.log('Raw response:', text);
         responseData = text ? JSON.parse(text) : {};
-        console.log('Enrollment response:', responseData);
+        console.log('Parsed response:', responseData);
       } catch (e) {
         console.error('Error parsing response:', e);
         responseData = {};
@@ -399,51 +572,34 @@ const AllSchemes = () => {
         throw new Error(errorMsg);
       }
 
-      // Refresh enrolled schemes
-      await fetchEnrolledSchemes();
+      if (responseData.status !== 'success') {
+        throw new Error(responseData.message || 'Failed to initiate payment');
+      }
 
-      // Success
-      await Swal.fire({
-        title: '🎉 Enrollment Successful!',
-        html: `
-          <div style="text-align: center; color: #fff;">
-            <p>You have successfully enrolled in <strong>${scheme.scheme_name}</strong>!</p>
-            <p style="font-size: 14px; color: #aaa; margin-top: 10px;">
-              Enrollment Number: <strong style="color: #C9A84C;">${enrollmentNumber}</strong>
-            </p>
-            <p style="font-size: 14px; color: #aaa;">
-              Maturity Date: <strong>${formatDate(maturityDate)}</strong>
-            </p>
-          </div>
-        `,
-        icon: 'success',
-        confirmButtonColor: '#C9A84C',
-        confirmButtonText: '📋 View My Enrollments',
-        showCancelButton: true,
-        cancelButtonText: 'Continue Browsing',
-        background: '#1a1a1a',
-        color: '#ffffff',
-        backdrop: 'rgba(0,0,0,0.8)',
-      }).then((result) => {
-        if (result.isConfirmed) {
-          window.location.href = '/my-enrollments';
-        }
-      });
+      // Process Razorpay payment
+      await processRazorpayPayment(responseData);
 
     } catch (err) {
-      console.error('Error enrolling in scheme:', err);
+      console.error('Error in enrollment process:', err);
+      setProcessingPayment(false);
+      
+      // Show more detailed error message
+      let errorMessage = err.message || 'Failed to initiate payment. Please try again.';
+      
+      // Check if it's a 404 error
+      if (err.message.includes('404')) {
+        errorMessage = 'Payment endpoint not found. Please check if the server is running and the URL is correct.';
+      }
       
       Swal.fire({
-        title: '❌ Enrollment Failed!',
-        text: err.message || 'Failed to enroll in scheme. Please try again.',
+        title: '❌ Payment Initiation Failed!',
+        text: errorMessage,
         icon: 'error',
         confirmButtonColor: '#d33',
         background: '#1a1a1a',
         color: '#ffffff',
         backdrop: 'rgba(0,0,0,0.8)',
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -573,10 +729,12 @@ const AllSchemes = () => {
                       <button 
                         className={`invest-btn ${enrolled ? 'enrolled' : ''}`}
                         onClick={() => handleEnrollNow(scheme)}
-                        disabled={loading || loadingEnrollments || enrolled}
+                        disabled={loading || loadingEnrollments || processingPayment || enrolled}
                       >
-                        <span className="btn-icon">{enrolled ? '✅' : '🚀'}</span>
-                        {enrolled ? 'Enrolled' : 'Enroll Now'}
+                        <span className="btn-icon">
+                          {processingPayment ? '⏳' : enrolled ? '✅' : '🚀'}
+                        </span>
+                        {processingPayment ? 'Processing...' : enrolled ? 'Enrolled' : 'Enroll Now'}
                       </button>
                       <button 
                         className="details-btn"
