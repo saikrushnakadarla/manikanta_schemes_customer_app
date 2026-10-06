@@ -280,6 +280,49 @@ const AllSchemes = () => {
     return true;
   };
 
+  // Confirm payment with backend
+  const confirmPaymentWithBackend = async (confirmationData) => {
+    try {
+      console.log('Confirming payment with data:', confirmationData);
+
+      const response = await fetch(`${baseURL}/api/scheme-enrollment/confirm-payment/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(confirmationData),
+      });
+
+      console.log('Confirmation response status:', response.status);
+
+      let responseData;
+      try {
+        const text = await response.text();
+        console.log('Raw confirmation response:', text);
+        responseData = text ? JSON.parse(text) : {};
+        console.log('Parsed confirmation response:', responseData);
+      } catch (e) {
+        console.error('Error parsing confirmation response:', e);
+        responseData = {};
+      }
+
+      if (!response.ok) {
+        const errorMsg = responseData.message || responseData.error || responseData.detail || `HTTP error! status: ${response.status}`;
+        throw new Error(errorMsg);
+      }
+
+      if (responseData.status !== 'success') {
+        throw new Error(responseData.message || 'Payment confirmation failed');
+      }
+
+      return responseData;
+    } catch (err) {
+      console.error('Error confirming payment:', err);
+      throw err;
+    }
+  };
+
   // Process Razorpay payment
   const processRazorpayPayment = async (paymentData) => {
     try {
@@ -297,12 +340,12 @@ const AllSchemes = () => {
         description: `Payment for ${paymentData.scheme_name}`,
         order_id: paymentData.order_id,
         handler: async function (response) {
-          // Payment successful - now create enrollment
-          await createEnrollmentAfterPayment(
-            paymentData.customer_id,
-            paymentData.scheme_id,
+          // Payment successful - now confirm with backend
+          await handlePaymentSuccess(
+            paymentData,
             response.razorpay_payment_id,
-            paymentData.transaction_id
+            response.razorpay_order_id,
+            response.razorpay_signature
           );
         },
         prefill: {
@@ -345,74 +388,68 @@ const AllSchemes = () => {
     }
   };
 
-  // Create enrollment after successful payment
-  const createEnrollmentAfterPayment = async (customerId, schemeId, paymentId, transactionId) => {
+  // Handle payment success - confirm with backend
+  const handlePaymentSuccess = async (paymentData, razorpayPaymentId, razorpayOrderId, razorpaySignature) => {
     try {
-      const scheme = schemes.find(s => s.scheme_id === schemeId);
-      const enrollmentDate = new Date().toISOString().split('T')[0];
-      const maturityDate = calculateMaturityDate(enrollmentDate, scheme.scheme_maturity_period);
-      const enrollmentNumber = generateEnrollmentNumber();
-
-      const enrollmentData = {
-        customer: customerId,
-        scheme: schemeId,
-        enrollment_date: enrollmentDate,
-        maturity_date: maturityDate,
-        enrollment_number: enrollmentNumber,
-        remarks: `Enrolled in ${scheme.scheme_name}`,
-        status: 'active',
-        paid_installments: 1, // First installment paid
-        total_paid_amount: scheme.scheme_installment_amount,
-        payment_id: paymentId,
-        transaction_id: transactionId,
-      };
-
-      console.log('Creating enrollment with data:', enrollmentData);
-
-      const response = await fetch(`${baseURL}/api/customer-scheme-enrollments/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(enrollmentData),
+      // Show processing message
+      Swal.fire({
+        title: '⏳ Confirming Payment...',
+        text: 'Please wait while we confirm your payment.',
+        icon: 'info',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        background: '#1a1a1a',
+        color: '#ffffff',
+        didOpen: () => {
+          Swal.showLoading();
+        }
       });
 
-      let responseData;
-      try {
-        const text = await response.text();
-        responseData = text ? JSON.parse(text) : {};
-        console.log('Enrollment response:', responseData);
-      } catch (e) {
-        console.error('Error parsing response:', e);
-        responseData = {};
-      }
+      // Prepare confirmation data
+      const confirmationData = {
+        customer_id: paymentData.customer_id,
+        scheme_id: paymentData.scheme_id,
+        transaction_id: paymentData.transaction_id,
+        razorpay_payment_id: razorpayPaymentId,
+        razorpay_order_id: razorpayOrderId,
+        razorpay_signature: razorpaySignature,
+      };
 
-      if (!response.ok) {
-        const errorMsg = responseData.message || responseData.error || responseData.detail || `HTTP error! status: ${response.status}`;
-        throw new Error(errorMsg);
-      }
+      console.log('Sending confirmation data:', confirmationData);
+
+      // Confirm payment with backend
+      const confirmationResponse = await confirmPaymentWithBackend(confirmationData);
+
+      console.log('Payment confirmation response:', confirmationResponse);
 
       // Refresh enrolled schemes
       await fetchEnrolledSchemes();
+
+      // Get scheme details for display
+      const scheme = schemes.find(s => s.scheme_id === paymentData.scheme_id);
 
       // Success
       await Swal.fire({
         title: '🎉 Enrollment Successful!',
         html: `
           <div style="text-align: center; color: #fff;">
-            <p>You have successfully enrolled in <strong>${scheme.scheme_name}</strong>!</p>
-            <p style="font-size: 14px; color: #aaa; margin-top: 10px;">
-              Enrollment Number: <strong style="color: #C9A84C;">${enrollmentNumber}</strong>
+            <p>You have successfully enrolled in <strong>${scheme?.scheme_name || paymentData.scheme_name}</strong>!</p>
+            ${confirmationResponse.enrollment_number ? `
+              <p style="font-size: 14px; color: #aaa; margin-top: 10px;">
+                Enrollment Number: <strong style="color: #C9A84C;">${confirmationResponse.enrollment_number}</strong>
+              </p>
+            ` : ''}
+            ${confirmationResponse.maturity_date ? `
+              <p style="font-size: 14px; color: #aaa;">
+                Maturity Date: <strong>${formatDate(confirmationResponse.maturity_date)}</strong>
+              </p>
+            ` : ''}
+            <p style="font-size: 14px; color: #aaa;">
+              First Installment: <strong style="color: #28a745;">${formatCurrency(scheme?.scheme_installment_amount || 0)}</strong> paid
             </p>
             <p style="font-size: 14px; color: #aaa;">
-              First Installment: <strong style="color: #28a745;">${formatCurrency(scheme.scheme_installment_amount)}</strong> paid
-            </p>
-            <p style="font-size: 14px; color: #aaa;">
-              Payment ID: <strong>${paymentId}</strong>
-            </p>
-            <p style="font-size: 14px; color: #aaa;">
-              Maturity Date: <strong>${formatDate(maturityDate)}</strong>
+              Payment ID: <strong>${razorpayPaymentId}</strong>
             </p>
           </div>
         `,
@@ -431,11 +468,24 @@ const AllSchemes = () => {
       });
 
     } catch (err) {
-      console.error('Error creating enrollment:', err);
+      console.error('Error confirming payment:', err);
       
       Swal.fire({
-        title: '⚠️ Enrollment Issue',
-        text: 'Payment was successful but enrollment creation failed. Please contact support.',
+        title: '⚠️ Payment Confirmation Issue',
+        html: `
+          <div style="text-align: left; color: #fff;">
+            <p>Your payment was successful, but we encountered an issue confirming it.</p>
+            <p style="font-size: 14px; color: #aaa; margin-top: 10px;">
+              Payment ID: <strong>${razorpayPaymentId}</strong>
+            </p>
+            <p style="font-size: 14px; color: #aaa;">
+              Error: <strong style="color: #ff6b6b;">${err.message}</strong>
+            </p>
+            <p style="font-size: 12px; color: #888; margin-top: 10px;">
+              Please contact support with your Payment ID for assistance.
+            </p>
+          </div>
+        `,
         icon: 'warning',
         confirmButtonColor: '#C9A84C',
         background: '#1a1a1a',
@@ -533,7 +583,7 @@ const AllSchemes = () => {
     setProcessingPayment(true);
 
     try {
-      // Initiate payment - CORRECTED URL with /api/ prefix
+      // Initiate payment
       const paymentPayload = {
         customer_id: customerId,
         scheme_id: scheme.scheme_id
@@ -541,7 +591,6 @@ const AllSchemes = () => {
 
       console.log('Initiating payment with payload:', paymentPayload);
 
-      // FIXED: Added /api/ prefix to match Django URL patterns
       const paymentUrl = `${baseURL}/api/scheme-enrollment/initiate-payment/`;
       console.log('Payment URL:', paymentUrl);
 
