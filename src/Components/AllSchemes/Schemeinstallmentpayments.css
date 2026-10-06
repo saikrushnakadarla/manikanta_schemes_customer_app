@@ -1,103 +1,96 @@
-/* ===== Payment History / Installments page – mobile app layout ===== */
-:root {
-  --ph-purple: #5b2189;
-  --ph-purple-dark: #4a1a78;
-  --ph-green: #2e7d4f;
-  --ph-green-dark: #236b40;
-  --ph-bg: #f7f5f8;
-  --ph-ink: #1f1a24;
-  --ph-muted: #888;
-  --ph-red: #c0392b;
-  --ph-blue-1: #0b2a5b;
-  --ph-blue-2: #1e5fa8;
-  --ph-gold: #f5b301;
-}
-
-.installments-page {
+/* =========================================================
+   PAYMENT HISTORY PAGE
+   ========================================================= */
+.ph-page {
   min-height: 100vh;
-  background: var(--ph-bg);
-  color: var(--ph-ink);
+  background: #f5f6f8;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   padding-bottom: 120px;
 }
 
-.installments-content {
-  max-width: 560px;
+.ph-container {
+  max-width: 600px;
   margin: 0 auto;
-  padding: 12px 14px 40px;
-  box-sizing: border-box;
+  padding: 20px 16px;
 }
 
-.installments-content * { box-sizing: border-box; }
-
-/* ===== Header ===== */
+/* ================= HEADER ================= */
 .ph-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
   gap: 12px;
-  padding: 8px 2px 18px;
 }
 
-.ph-back-btn {
+.ph-back-icon {
   background: none;
   border: none;
-  color: var(--ph-ink);
-  padding: 4px;
+  font-size: 26px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  color: #1a1a1a;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.ph-back-icon:hover {
+  background: #e8e8e8;
 }
 
 .ph-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
   flex: 1;
   margin: 0;
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--ph-ink);
-  letter-spacing: 0.2px;
 }
 
 .ph-active-badge {
-  background: #e6f4ea;
-  color: var(--ph-green);
-  font-size: 0.75rem;
+  background: #d1f4d8;
+  color: #2d6a4f;
+  font-size: 13px;
   font-weight: 700;
-  padding: 6px 14px;
-  border-radius: 20px;
+  padding: 8px 18px;
+  border-radius: 10px;
+  letter-spacing: 0.3px;
 }
 
-/* ===== Blue Summary Card ===== */
+/* ================= GOLD SUMMARY CARD ================= */
 .ph-summary-card {
-  background: linear-gradient(135deg, var(--ph-blue-1) 0%, var(--ph-blue-2) 100%);
+  background: linear-gradient(135deg, #0a2540 0%, #1a4a7a 100%);
   border-radius: 18px;
-  padding: 20px 18px 18px;
+  padding: 22px 22px 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 6px 24px rgba(10, 37, 64, 0.25);
   color: #fff;
-  box-shadow: 0 6px 18px rgba(11, 42, 91, 0.25);
-  margin-bottom: 18px;
 }
 
 .ph-summary-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
   margin-bottom: 18px;
+  gap: 12px;
 }
 
-.ph-summary-left { flex: 1; min-width: 0; }
+.ph-summary-left {
+  flex: 1;
+  min-width: 0;
+}
 
-.ph-scheme-name {
-  margin: 0 0 6px;
-  font-size: 1.05rem;
+.ph-summary-title {
+  font-size: 16px;
   font-weight: 700;
   color: #fff;
+  margin: 0 0 6px 0;
+  letter-spacing: 0.2px;
 }
 
-.ph-scheme-sub {
+.ph-summary-subtitle {
+  font-size: 13px;
+  color: #b8d4ec;
   margin: 0;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.85);
 }
 
 .ph-summary-right {
@@ -105,13 +98,14 @@
   flex-shrink: 0;
 }
 
-.ph-gold-amount {
-  font-size: 1.15rem;
+.ph-gold-value {
+  font-size: 22px;
   font-weight: 700;
-  color: var(--ph-gold);
+  color: #f5c542;
+  letter-spacing: 0.3px;
 }
 
-.ph-progress-row {
+.ph-summary-bottom {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -120,279 +114,631 @@
 .ph-progress-bar {
   flex: 1;
   height: 6px;
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
   overflow: hidden;
 }
 
 .ph-progress-fill {
   height: 100%;
-  background: var(--ph-gold);
-  border-radius: 3px;
-  transition: width 0.4s ease;
+  background: linear-gradient(90deg, #f5c542, #e0a800);
+  border-radius: 10px;
+  transition: width 0.5s ease;
 }
 
 .ph-progress-text {
-  font-size: 0.8rem;
-  color: #fff;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-/* ===== Filter chips ===== */
-.ph-filter-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-}
-
-.ph-filter-chip {
-  border: 1px solid #e0d7e6;
-  background: #fff;
-  color: #666;
-  font-size: 0.8rem;
+  font-size: 12px;
+  color: #b8d4ec;
   font-weight: 600;
-  padding: 7px 16px;
-  border-radius: 20px;
-  cursor: pointer;
   white-space: nowrap;
-  font-family: inherit;
 }
 
-.ph-filter-chip.active {
-  background: var(--ph-purple);
-  color: #fff;
-  border-color: var(--ph-purple);
-}
-
-/* ===== List ===== */
+/* ================= INSTALLMENTS LIST ================= */
 .ph-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
+/* ================= CARD ================= */
 .ph-card {
-  position: relative;
-  display: flex;
   background: #fff;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 2px 10px rgba(60, 20, 90, 0.06);
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #eef0f3;
+  border-left: 4px solid #ccc;
+  transition: all 0.2s ease;
+  animation: phFadeInUp 0.4s ease backwards;
 }
 
-.ph-card-strip {
-  width: 6px;
-  flex-shrink: 0;
+.ph-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.09);
+  transform: translateY(-1px);
 }
 
-.strip-paid { background: var(--ph-green); }
-.strip-upcoming { background: #b9b9b9; }
-
-.ph-card-body {
-  flex: 1;
-  padding: 16px 16px 14px;
-  min-width: 0;
+@keyframes phFadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
+/* Left border colors by status */
+.ph-card-paid      { border-left-color: #2d6a4f; }
+.ph-card-partial   { border-left-color: #e0a800; }
+.ph-card-pending   { border-left-color: #4a4a4a; }
+.ph-card-overdue   { border-left-color: #e63946; }
+
+/* ================= CARD TOP ================= */
 .ph-card-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 12px;
   gap: 10px;
-  margin-bottom: 10px;
 }
 
-.ph-installment-title {
+.ph-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
   margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--ph-ink);
 }
 
-.ph-installment-amount {
-  font-size: 0.95rem;
+.ph-card-amount {
+  font-size: 16px;
   font-weight: 700;
-  color: var(--ph-green);
+  color: #1a1a1a;
   white-space: nowrap;
 }
 
-.ph-card:not(.paid) .ph-installment-amount {
-  color: var(--ph-ink);
+/* ================= STATUS PILL ================= */
+.ph-card-status {
+  margin-bottom: 10px;
 }
 
-.ph-status-row {
-  margin-bottom: 8px;
-}
-
-.ph-status-badge {
+.status-pill {
   display: inline-block;
-  font-size: 0.7rem;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 5px 12px;
+  padding: 6px 14px;
   border-radius: 20px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
 }
 
-.status-paid {
-  background: #e6f4ea;
-  color: var(--ph-green);
+.status-pill-paid {
+  background: #d1f4d8;
+  color: #2d6a4f;
 }
 
-.status-upcoming {
-  background: #f0f0f0;
-  color: #666;
+.status-pill-partial {
+  background: #fff3cd;
+  color: #8a6d00;
 }
 
-.status-overdue {
-  background: #fdecea;
-  color: var(--ph-red);
+.status-pill-upcoming {
+  background: #ececec;
+  color: #555;
 }
 
-.status-cancelled {
+.status-pill-overdue {
+  background: #fde2e4;
+  color: #b3261e;
+}
+
+.status-pill-cancelled {
   background: #f0f0f0;
   color: #888;
+  text-decoration: line-through;
 }
 
-.ph-date-line {
-  margin: 0 0 14px;
-  font-size: 0.82rem;
-  color: #8a8a8a;
-}
-
-.ph-divider {
-  height: 1px;
-  background: #eee;
+/* ================= DATE ================= */
+.ph-card-date {
+  font-size: 14px;
+  color: #666;
   margin-bottom: 14px;
+  line-height: 1.5;
 }
 
+/* ================= DIVIDER ================= */
+.ph-card-divider {
+  height: 1px;
+  background: #eef0f3;
+  margin: 0 0 14px 0;
+}
+
+/* ================= CARD BOTTOM ================= */
 .ph-card-bottom {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .ph-payment-mode {
-  font-size: 0.82rem;
-  color: #999;
-  text-transform: capitalize;
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.ph-outline-btn {
-  border: 1.5px solid var(--ph-purple);
+.ph-mode-label {
+  font-size: 14px;
+  color: #888;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+/* Right-side actions container */
+.ph-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+/* Payment Details button (outline) */
+.ph-payment-details-btn {
+  padding: 10px 22px;
   background: #fff;
-  color: var(--ph-purple);
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 9px 18px;
+  color: #3d2b56;
+  border: 1.5px solid #3d2b56;
   border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  font-family: inherit;
+  transition: all 0.2s;
   white-space: nowrap;
 }
 
-.ph-outline-btn:active { background: #f5edfb; }
+.ph-payment-details-btn:hover {
+  background: #3d2b56;
+  color: #fff;
+}
 
-.ph-paynow-btn {
-  border: none;
+/* Pay Now / Pay Remaining button (dark) */
+.ph-pay-now-btn {
+  padding: 12px 24px;
   background: #3a3a3a;
   color: #fff;
-  font-size: 0.82rem;
-  font-weight: 600;
-  padding: 10px 26px;
+  border: none;
   border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  font-family: inherit;
+  transition: all 0.2s;
   white-space: nowrap;
+  min-width: 130px;
 }
 
-.ph-paynow-btn:active { background: #222; }
-.ph-paynow-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-/* No data */
-.ph-no-data {
-  text-align: center;
-  padding: 50px 20px;
-  color: #999;
+.ph-pay-now-btn:hover:not(:disabled) {
+  background: #1a1a1a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.ph-no-data p { margin: 0 0 6px; font-weight: 600; color: #666; }
-.ph-no-data span { font-size: 0.85rem; }
+.ph-pay-now-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
-/* ===== Floating button ===== */
-.ph-floating-pay-btn {
+/* ================= FLOATING PAY CURRENT DUE BUTTON ================= */
+.ph-float-pay-btn {
   position: fixed;
-  bottom: 90px;
-  right: 20px;
-  background: var(--ph-purple);
+  bottom: 30px;
+  right: 24px;
+  padding: 16px 28px;
+  background: #3d2b56;
   color: #fff;
   border: none;
   border-radius: 30px;
-  padding: 14px 24px;
-  font-size: 0.88rem;
+  font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  font-family: inherit;
-  box-shadow: 0 6px 18px rgba(91, 33, 137, 0.4);
-  z-index: 50;
+  box-shadow: 0 6px 24px rgba(61, 43, 86, 0.4);
+  transition: all 0.3s ease;
+  z-index: 100;
+  letter-spacing: 0.3px;
 }
 
-.ph-floating-pay-btn:active { background: var(--ph-purple-dark); }
-.ph-floating-pay-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+.ph-float-pay-btn:hover {
+  background: #2d1f40;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(61, 43, 86, 0.5);
+}
 
-/* ===== Loading / Error ===== */
-.installments-loading {
+.ph-float-pay-btn:active {
+  transform: translateY(-1px);
+}
+
+/* ================= EMPTY ================= */
+.ph-empty {
+  text-align: center;
+  padding: 60px 20px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.ph-empty-icon {
+  font-size: 56px;
+  margin-bottom: 14px;
+}
+
+.ph-empty p {
+  color: #888;
+  font-size: 15px;
+  margin: 0;
+}
+
+/* ================= LOADING ================= */
+.ph-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 60vh;
-  color: var(--ph-muted);
-  gap: 16px;
 }
 
-.scheme-loader {
-  width: 42px;
-  height: 42px;
-  border: 4px solid #e5dce9;
-  border-top: 4px solid var(--ph-purple);
+.ph-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #eee;
+  border-top: 4px solid #3d2b56;
   border-radius: 50%;
-  animation: schemeSpin 1s linear infinite;
+  animation: phSpin 1s linear infinite;
 }
 
-@keyframes schemeSpin {
+@keyframes phSpin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
-.installments-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-  padding: 20px;
+.ph-loading p {
+  margin-top: 18px;
+  color: #666;
+  font-size: 15px;
+}
+
+/* ================= ERROR ================= */
+.ph-error {
+  max-width: 500px;
+  margin: 60px auto;
   text-align: center;
-  color: var(--ph-red);
+  background: #fff;
+  padding: 50px 30px;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.ph-error-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+}
+
+.ph-error h3 {
+  color: #1a1a1a;
+  margin: 0 0 10px 0;
+  font-size: 18px;
+}
+
+.ph-error p {
+  color: #666;
+  margin: 0 0 20px 0;
+}
+
+.ph-back-btn {
+  padding: 12px 28px;
+  background: #3d2b56;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ph-back-btn:hover {
+  background: #2d1f40;
+}
+
+/* ================= MODAL ================= */
+.ph-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: phFadeIn 0.2s ease;
+}
+
+@keyframes phFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.ph-modal {
+  background: #fff;
+  width: 100%;
+  max-width: 600px;
+  border-radius: 20px 20px 0 0;
+  padding: 24px;
+  animation: phSlideUp 0.3s ease;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+@keyframes phSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.ph-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.ph-modal-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.ph-modal-close {
+  background: #f2f2f2;
+  border: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.ph-modal-close:hover {
+  background: #e0e0e0;
+  color: #1a1a1a;
+}
+
+.ph-modal-body {
+  margin-bottom: 20px;
+}
+
+.ph-modal-summary {
+  background: #f8f8fa;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.ph-modal-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+  color: #555;
   gap: 12px;
 }
 
-.installments-error i { font-size: 2.5rem; }
-.installments-error h3 { margin: 0; color: var(--ph-ink); }
-.installments-error p { margin: 0; color: #666; }
+.ph-modal-row strong {
+  color: #1a1a1a;
+  font-weight: 700;
+  text-align: right;
+}
 
-@media (max-width: 380px) {
-  .ph-title { font-size: 1.02rem; }
-  .ph-scheme-name { font-size: 0.98rem; }
-  .ph-installment-title { font-size: 0.92rem; }
-  .ph-outline-btn { padding: 8px 12px; font-size: 0.76rem; }
-  .ph-paynow-btn { padding: 9px 18px; font-size: 0.78rem; }
+.ph-modal-row.highlight {
+  border-top: 1px dashed #ddd;
+  margin-top: 6px;
+  padding-top: 12px;
+}
+
+.ph-modal-row.highlight strong {
+  color: #3d2b56;
+  font-size: 16px;
+}
+
+.ph-modal-input-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.ph-modal-input-wrap {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid #ddd;
+  border-radius: 10px;
+  padding: 4px 14px;
+  transition: border 0.2s;
+}
+
+.ph-modal-input-wrap:focus-within {
+  border-color: #3d2b56;
+  box-shadow: 0 0 0 3px rgba(61, 43, 86, 0.1);
+}
+
+.ph-rupee {
+  font-size: 18px;
+  font-weight: 700;
+  color: #3d2b56;
+  margin-right: 6px;
+}
+
+.ph-modal-input-wrap input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  background: transparent;
+}
+
+.ph-modal-error {
+  color: #e63946;
+  font-size: 13px;
+  margin: 8px 0 0 0;
+  font-weight: 500;
+}
+
+.ph-quick-amounts {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.ph-quick-amounts button {
+  flex: 1;
+  min-width: 70px;
+  padding: 10px 12px;
+  background: #f2f2f5;
+  color: #3d2b56;
+  border: 1px solid #e0e0e5;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ph-quick-amounts button:hover {
+  background: #3d2b56;
+  color: #fff;
+  border-color: #3d2b56;
+}
+
+.ph-modal-footer {
+  display: flex;
+  gap: 12px;
+}
+
+.ph-btn-cancel {
+  flex: 1;
+  padding: 14px;
+  background: #f2f2f5;
+  color: #333;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ph-btn-cancel:hover {
+  background: #e0e0e5;
+}
+
+.ph-btn-proceed {
+  flex: 1.5;
+  padding: 14px;
+  background: #3d2b56;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ph-btn-proceed:hover:not(:disabled) {
+  background: #2d1f40;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(61, 43, 86, 0.3);
+}
+
+.ph-btn-proceed:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ph-details-modal {
+  max-width: 480px;
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 480px) {
+  .ph-container {
+    padding: 16px 12px;
+  }
+
+  .ph-title {
+    font-size: 18px;
+  }
+
+  .ph-active-badge {
+    font-size: 12px;
+    padding: 6px 14px;
+  }
+
+  .ph-summary-card {
+    padding: 18px;
+  }
+
+  .ph-summary-title {
+    font-size: 15px;
+  }
+
+  .ph-gold-value {
+    font-size: 20px;
+  }
+
+  .ph-card {
+    padding: 16px;
+  }
+
+  .ph-card-title {
+    font-size: 15px;
+  }
+
+  .ph-card-amount {
+    font-size: 15px;
+  }
+
+  .ph-card-bottom {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ph-card-actions {
+    margin-left: 0;
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .ph-payment-details-btn {
+    width: 100%;
+    padding: 10px 18px;
+    font-size: 13px;
+  }
+
+  .ph-pay-now-btn {
+    width: 100%;
+    padding: 12px 18px;
+    font-size: 14px;
+    min-width: unset;
+  }
+
+  .ph-float-pay-btn {
+    bottom: 20px;
+    right: 16px;
+    padding: 14px 24px;
+    font-size: 14px;
+  }
+
+  .ph-modal {
+    padding: 20px 18px;
+  }
 }

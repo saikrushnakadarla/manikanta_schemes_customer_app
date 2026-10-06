@@ -101,6 +101,7 @@ import Profile from "./Components/Profile/Profile";
 import { isLoggedIn } from "./Components/Navbar/NavConfig"; // adjust path to where NavConfig.js lives
 import Profileform from "./Components/Profile/Profileform";
 import Schemeinstallmentpayments from "./Components/AllSchemes/Schemeinstallmentpayments";
+import MyEnrollmentPlans from "./Components/AllSchemes/MyEnrollmentPlans";
 
 // Only logged-in users can open the wrapped page; guests are sent to `to`.
 const RequireLogin = ({ children, to = "/login" }) =>
@@ -143,7 +144,8 @@ function App() {
         <Route path="/order-confirmation" element={<RequireLogin><OrderConfirmation /></RequireLogin>} /> 
          <Route path="/edit-profile" element={<Profileform />} /> 
          <Route path="/payment-history" element={<Schemeinstallmentpayments />} />
-         <Route path="/payment-history/:id" element={<Schemeinstallmentpayments />} />
+         <Route path="/payment-history/:id" element={<Schemeinstallmentpayments />} /> 
+         <Route path="/my-enrollments" element={<MyEnrollmentPlans />} />
       </Routes>
     </Router>
   );

@@ -16,15 +16,23 @@ const loadRazorpayScript = () => {
   });
 };
 
-function Schemeinstallmentpayments() {
+function Schemesinstallments() {
   const location = useLocation();
   const navigate = useNavigate();
   const [installments, setInstallments] = useState([]);
   const [schemeInfo, setSchemeInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState('all');
   const [processingPayment, setProcessingPayment] = useState({});
+
+  // ============================================================
+  // PARTIAL PAYMENT MODAL STATE
+  // ============================================================
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedInstallment, setSelectedInstallment] = useState(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentError, setPaymentError] = useState('');
+  const [showPaymentDetails, setShowPaymentDetails] = useState(null);
 
   // Get enrollment_id from multiple sources
   const getEnrollmentId = () => {
@@ -43,21 +51,10 @@ function Schemeinstallmentpayments() {
     }
 
     const storedId = sessionStorage.getItem('currentEnrollmentId');
-    if (storedId) {
-      return parseInt(storedId);
-    }
+    if (storedId) return parseInt(storedId);
 
     const localStoredId = localStorage.getItem('currentEnrollmentId');
-    if (localStoredId) {
-      return parseInt(localStoredId);
-    }
-
-    // Fallback: use plan.id passed from AllSchemes via navigate state
-    if (location.state?.plan?.id) {
-      const id = parseInt(location.state.plan.id);
-      sessionStorage.setItem('currentEnrollmentId', id);
-      return id;
-    }
+    if (localStoredId) return parseInt(localStoredId);
 
     return null;
   };
@@ -76,27 +73,22 @@ function Schemeinstallmentpayments() {
         icon: 'error',
         timer: 3000,
         timerProgressBar: true,
-        confirmButtonColor: '#5b2189'
+        confirmButtonColor: '#3d2b56'
       }).then(() => {
-        navigate('/schemes');
+        navigate('/my-enrollments');
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
 
   const fetchInstallments = async (enrollmentId) => {
     try {
       setLoading(true);
 
-      console.log('🔍 Fetching installments for enrollment ID:', enrollmentId);
-
       const response = await fetch(
         `${baseURL}/api/customer/schemes/${enrollmentId}/installments/`,
         {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          }
+          headers: { 'Content-Type': 'application/json' }
         }
       );
 
@@ -108,7 +100,6 @@ function Schemeinstallmentpayments() {
       }
 
       const result = await response.json();
-      console.log('📊 Installments Response:', result);
 
       if (result.status === 'success') {
         setInstallments(result.data || []);
@@ -118,9 +109,7 @@ function Schemeinstallmentpayments() {
           scheme_name: result.scheme_name,
           total_installments: result.total_installments,
           paid_installments: result.paid_installments,
-          pending_installments: result.pending_installments,
-          total_gold: result.total_gold || result.gold_locked || '0.132 g',
-          gold_purity: result.gold_purity || '22K (916)'
+          pending_installments: result.pending_installments
         });
       } else {
         throw new Error(result.message || 'Invalid data format received');
@@ -133,15 +122,107 @@ function Schemeinstallmentpayments() {
         title: 'Error!',
         text: error.message || 'Failed to load installments. Please try again.',
         icon: 'error',
-        confirmButtonColor: '#5b2189'
+        confirmButtonColor: '#3d2b56'
       });
     } finally {
       setLoading(false);
     }
   };
 
-  // Razorpay payment handler
-  const handlePayment = async (installment) => {
+  // ============================================================
+  // HELPERS
+  // ============================================================
+
+  /**
+   * Returns remaining amount for an installment
+   * (amount - paid_amount)
+   */
+  const getRemainingAmount = (installment) => {
+    const amount = parseFloat(installment.amount || 0);
+    const paid = parseFloat(installment.paid_amount || 0);
+    const remaining = amount - paid;
+    return remaining > 0 ? remaining : 0;
+  };
+
+  /**
+   * Determines if an installment is still payable
+   * (i.e., not cancelled AND remaining amount > 0)
+   */
+  const isInstallmentPayable = (installment) => {
+    const status = (installment.status || '').toLowerCase();
+    if (status === 'cancelled') return false;
+    return getRemainingAmount(installment) > 0;
+  };
+
+  const getTotalGoldAccumulated = () => {
+    const totalPaid = installments
+      .filter(i => {
+        const s = (i.status || '').toLowerCase();
+        return s === 'paid' || s === 'partial';
+      })
+      .reduce((sum, i) => sum + parseFloat(i.paid_amount || 0), 0);
+    // Approximate: ₹6000 per gram of 22K gold
+    return (totalPaid / 6000).toFixed(3);
+  };
+
+  const getCurrentDueInstallment = () => {
+    return installments.find(i => {
+      const status = (i.status || '').toLowerCase();
+      return (status === 'pending' || status === 'partial' || status === 'overdue') 
+             && getRemainingAmount(i) > 0;
+    });
+  };
+
+  const openPaymentModal = (installment) => {
+    const remaining = getRemainingAmount(installment);
+    setSelectedInstallment(installment);
+    setPaymentAmount(remaining.toString());
+    setPaymentError('');
+    setShowPaymentModal(true);
+  };
+
+  const closePaymentModal = () => {
+    setShowPaymentModal(false);
+    setSelectedInstallment(null);
+    setPaymentAmount('');
+    setPaymentError('');
+  };
+
+  const handleProceedToPayment = () => {
+    if (!selectedInstallment) return;
+
+    const remaining = getRemainingAmount(selectedInstallment);
+    const entered = parseFloat(paymentAmount);
+
+    if (!paymentAmount || isNaN(entered)) {
+      setPaymentError('Please enter a valid amount.');
+      return;
+    }
+    if (entered <= 0) {
+      setPaymentError('Amount must be greater than zero.');
+      return;
+    }
+    if (entered > remaining) {
+      setPaymentError(
+        `Amount cannot exceed the remaining amount of ₹${remaining.toFixed(2)}.`
+      );
+      return;
+    }
+
+    const installmentToPay = selectedInstallment;
+    const amountToPay = entered;
+
+    closePaymentModal();
+
+    setTimeout(() => {
+      handlePayment(installmentToPay, amountToPay);
+    }, 200);
+  };
+
+  // ============================================================
+  // RAZORPAY PAYMENT
+  // ============================================================
+  const handlePayment = async (installment, paymentAmount) => {
     const installmentId = installment.installment_id;
 
     try {
@@ -152,45 +233,48 @@ function Schemeinstallmentpayments() {
         throw new Error('Failed to load Razorpay SDK. Please check your internet connection.');
       }
 
-      console.log('💰 Creating payment order for installment:', installmentId);
-
       const createOrderResponse = await fetch(
         `${baseURL}/api/scheme/initiate-payment/`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            installment_id: installmentId
+            installment_id: installmentId,
+            payment_amount: paymentAmount
           })
         }
       );
 
       if (!createOrderResponse.ok) {
         const errorData = await createOrderResponse.json();
-        console.error('❌ Order creation error:', errorData);
-        throw new Error(errorData.error || 'Failed to create payment order');
+        throw new Error(errorData.error || errorData.message || 'Failed to create payment order');
       }
 
       const orderData = await createOrderResponse.json();
-      console.log('✅ Payment order created:', orderData);
+
+      const razorpayKey = orderData.razorpay_key || orderData.key;
+      const razorpayOrderId = orderData.razorpay_order_id || orderData.order_id;
+      const razorpayAmount = orderData.amount
+        ? orderData.amount
+        : Math.round(parseFloat(paymentAmount) * 100);
+
+      if (!razorpayKey || !razorpayOrderId) {
+        throw new Error('Invalid payment order response from server.');
+      }
 
       const options = {
-        key: orderData.key,
-        amount: orderData.amount,
+        key: razorpayKey,
+        amount: razorpayAmount,
         currency: 'INR',
         name: 'Scheme Installment Payment',
         description: `Payment for Installment #${installment.installment_no}`,
-        order_id: orderData.order_id,
+        order_id: razorpayOrderId,
         prefill: {
           name: localStorage.getItem('customerName') || 'Customer',
           email: localStorage.getItem('customerEmail') || '',
           contact: localStorage.getItem('customerPhone') || '',
         },
-        theme: {
-          color: '#5b2189'
-        },
+        theme: { color: '#3d2b56' },
         handler: function (response) {
           verifyPayment(response, installment);
         },
@@ -201,7 +285,7 @@ function Schemeinstallmentpayments() {
               title: 'Payment Cancelled',
               text: 'You cancelled the payment process.',
               icon: 'info',
-              confirmButtonColor: '#5b2189'
+              confirmButtonColor: '#3d2b56'
             });
           }
         }
@@ -218,12 +302,11 @@ function Schemeinstallmentpayments() {
         title: 'Payment Error',
         text: error.message || 'Failed to initiate payment. Please try again.',
         icon: 'error',
-        confirmButtonColor: '#5b2189'
+        confirmButtonColor: '#3d2b56'
       });
     }
   };
 
-  // Verify payment after successful transaction
   const verifyPayment = async (paymentResponse, installment) => {
     const installmentId = installment.installment_id;
 
@@ -232,9 +315,7 @@ function Schemeinstallmentpayments() {
         `${baseURL}/api/scheme/confirm-payment/`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             razorpay_order_id: paymentResponse.razorpay_order_id,
             razorpay_payment_id: paymentResponse.razorpay_payment_id,
@@ -244,26 +325,29 @@ function Schemeinstallmentpayments() {
       );
 
       const verifyData = await verifyResponse.json();
-      console.log('✅ Payment verification response:', verifyData);
 
-      if (verifyData.status === 'success') {
+      if (verifyData.success === true || verifyData.status === 'success') {
         setProcessingPayment(prev => ({ ...prev, [installmentId]: false }));
 
+        const instStatus = verifyData.installment?.status;
+        const isPartial = instStatus === 'partial';
+
         Swal.fire({
-          title: 'Payment Successful!',
-          text: `Receipt Number: ${verifyData.receipt_no || 'N/A'}`,
+          title: isPartial ? 'Partial Payment Successful!' : 'Payment Successful!',
+          html: isPartial
+            ? `<p>Your partial payment has been recorded.</p>
+               <p><strong>Remaining amount:</strong> ₹${verifyData.installment?.remaining_amount ?? 'N/A'}</p>`
+            : `<p>Receipt Number: ${verifyData.receipt?.receipt_number || 'N/A'}</p>`,
           icon: 'success',
-          confirmButtonColor: '#00b894',
+          confirmButtonColor: '#2d6a4f',
           timer: 5000,
           timerProgressBar: true
         });
 
         const enrollmentId = getEnrollmentId();
-        if (enrollmentId) {
-          await fetchInstallments(enrollmentId);
-        }
+        if (enrollmentId) await fetchInstallments(enrollmentId);
       } else {
-        throw new Error(verifyData.error || 'Payment verification failed');
+        throw new Error(verifyData.error || verifyData.message || 'Payment verification failed');
       }
     } catch (error) {
       console.error('❌ Verification error:', error);
@@ -273,98 +357,77 @@ function Schemeinstallmentpayments() {
         title: 'Verification Failed',
         text: error.message || 'Payment could not be verified. Please contact support.',
         icon: 'error',
-        confirmButtonColor: '#5b2189'
+        confirmButtonColor: '#3d2b56'
       });
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
+  // ============================================================
+  // FORMATTERS
+  // ============================================================
   const formatDateTime = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'long',
       year: 'numeric',
-      month: 'short',
-      day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: true
     });
   };
 
   const formatCurrency = (amount) => {
-    if (amount === null || amount === undefined || amount === '') return 'N/A';
+    if (!amount && amount !== 0) return '0';
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return `₹ ${numAmount.toLocaleString('en-IN')} /-`;
-  };
-
-  const formatShortDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
-    });
-  };
-
-  // Status label from reference (PAID / UPCOMING . NOV 2026 / OVERDUE)
-  const getStatusLabel = (installment) => {
-    const status = (installment.status || 'pending').toLowerCase();
-    if (status === 'paid') return { text: 'PAID', className: 'status-paid' };
-    if (status === 'overdue') return { text: 'OVERDUE', className: 'status-overdue' };
-    if (status === 'cancelled') return { text: 'CANCELLED', className: 'status-cancelled' };
-
-    // pending -> upcoming month label
-    const due = installment.due_date ? new Date(installment.due_date) : null;
-    if (due) {
-      const monthYear = due.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }).toUpperCase();
-      return { text: `UPCOMING . ${monthYear}`, className: 'status-upcoming' };
-    }
-    return { text: 'UPCOMING', className: 'status-upcoming' };
-  };
-
-  const handleFilterChange = (filterType) => {
-    setFilter(filterType);
+    if (isNaN(numAmount)) return '0';
+    return new Intl.NumberFormat('en-IN', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(numAmount);
   };
 
   const handleBack = () => {
     sessionStorage.removeItem('currentEnrollmentId');
     localStorage.removeItem('currentEnrollmentId');
-    navigate(-1);
+    navigate('/my-enrollments');
   };
 
-  // Find the current due installment (first pending / overdue)
-  const currentDueInstallment = installments.find(
-    (inst) => (inst.status || '').toLowerCase() === 'pending' ||
-      (inst.status || '').toLowerCase() === 'overdue'
-  );
+  // ============================================================
+  // RENDER STATUS PILL
+  // ============================================================
+  const renderStatusPill = (installment) => {
+    const status = (installment.status || '').toLowerCase();
+    const dueDate = new Date(installment.due_date);
+    const monthYear = dueDate
+      .toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
+      .toUpperCase();
 
-  // Filter installments
-  const filteredInstallments = installments.filter(inst => {
-    if (filter === 'all') return true;
-    if (filter === 'paid') return inst.status?.toLowerCase() === 'paid';
-    if (filter === 'pending') {
-      const s = inst.status?.toLowerCase();
-      return s === 'pending' || s === 'overdue';
+    if (status === 'paid') {
+      return <span className="status-pill status-pill-paid">• PAID</span>;
     }
-    return true;
-  });
+    if (status === 'partial') {
+      return <span className="status-pill status-pill-partial">• PARTIAL</span>;
+    }
+    if (status === 'overdue') {
+      return <span className="status-pill status-pill-overdue">• OVERDUE</span>;
+    }
+    if (status === 'cancelled') {
+      return <span className="status-pill status-pill-cancelled">• CANCELLED</span>;
+    }
+    return <span className="status-pill status-pill-upcoming">• UPCOMING . {monthYear}</span>;
+  };
 
+  // ============================================================
+  // RENDER
+  // ============================================================
   if (loading) {
     return (
       <div>
         <Navbar />
-        <div className="installments-loading">
-          <div className="scheme-loader"></div>
+        <div className="ph-loading">
+          <div className="ph-spinner"></div>
           <p>Loading payment history...</p>
         </div>
       </div>
@@ -375,158 +438,166 @@ function Schemeinstallmentpayments() {
     return (
       <div>
         <Navbar />
-        <div className="installments-error">
-          <i className="bi bi-exclamation-triangle-fill"></i>
+        <div className="ph-error">
+          <div className="ph-error-icon">⚠️</div>
           <h3>Error Loading Installments</h3>
           <p>{error}</p>
-          <button onClick={handleBack} className="btn btn-primary">
-            <i className="bi bi-arrow-left"></i> Go Back
-          </button>
+          <button onClick={handleBack} className="ph-back-btn">← Go Back</button>
         </div>
       </div>
     );
   }
 
-  const totalInstallments = schemeInfo?.total_installments || installments.length || 11;
-  const paidInstallments = schemeInfo?.paid_installments || installments.filter(i => i.status?.toLowerCase() === 'paid').length;
-  const progressPercent = totalInstallments > 0 ? (paidInstallments / totalInstallments) * 100 : 0;
+  const currentDue = getCurrentDueInstallment();
+  const goldAccumulated = getTotalGoldAccumulated();
+  const paidCount = installments.filter(i => i.status?.toLowerCase() === 'paid').length;
+  const totalCount = schemeInfo?.total_installments || installments.length || 0;
 
   return (
-    <div className="installments-page">
+    <div className="ph-page">
       <Navbar />
 
-      <div className="installments-content">
-        {/* Header */}
+      <div className="ph-container">
+        {/* ================= HEADER ================= */}
         <div className="ph-header">
-          <button className="ph-back-btn" onClick={handleBack} aria-label="Back">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-          </button>
+          <button className="ph-back-icon" onClick={handleBack}>←</button>
           <h1 className="ph-title">Payment History</h1>
           <span className="ph-active-badge">Active</span>
         </div>
 
-        {/* Blue summary card */}
+        {/* ================= GOLD SUMMARY CARD ================= */}
         <div className="ph-summary-card">
           <div className="ph-summary-top">
             <div className="ph-summary-left">
-              <h2 className="ph-scheme-name">
-                {schemeInfo?.scheme_name || 'Swarna Dhara Metal'}
+              <h2 className="ph-summary-title">
+                {schemeInfo?.scheme_name || 'Scheme'}
               </h2>
-              <p className="ph-scheme-sub">
-                Total Gold {schemeInfo?.gold_purity || '22K (916)'} deposits
+              <p className="ph-summary-subtitle">
+                Total Gold 22K (916) deposits
               </p>
             </div>
             <div className="ph-summary-right">
-              <span className="ph-gold-amount">
-                {schemeInfo?.total_gold || '0.132 g'}
-              </span>
+              <span className="ph-gold-value">{goldAccumulated} g</span>
             </div>
           </div>
 
-          <div className="ph-progress-row">
+          <div className="ph-summary-bottom">
             <div className="ph-progress-bar">
               <div
                 className="ph-progress-fill"
-                style={{ width: `${progressPercent}%` }}
-              />
+                style={{ width: `${totalCount > 0 ? (paidCount / totalCount) * 100 : 0}%` }}
+              ></div>
             </div>
             <span className="ph-progress-text">
-              {paidInstallments} of {totalInstallments} done
+              {paidCount} of {totalCount} done
             </span>
           </div>
         </div>
 
-        {/* Filter chips (subtle) */}
-        <div className="ph-filter-row">
-          <button
-            className={`ph-filter-chip ${filter === 'all' ? 'active' : ''}`}
-            onClick={() => handleFilterChange('all')}
-          >
-            All
-          </button>
-          <button
-            className={`ph-filter-chip ${filter === 'paid' ? 'active' : ''}`}
-            onClick={() => handleFilterChange('paid')}
-          >
-            Paid
-          </button>
-          <button
-            className={`ph-filter-chip ${filter === 'pending' ? 'active' : ''}`}
-            onClick={() => handleFilterChange('pending')}
-          >
-            Upcoming
-          </button>
-        </div>
-
-        {/* Installments List */}
+        {/* ================= INSTALLMENTS LIST ================= */}
         <div className="ph-list">
-          {filteredInstallments.length > 0 ? (
-            filteredInstallments.map((installment, index) => {
+          {installments.length === 0 ? (
+            <div className="ph-empty">
+              <div className="ph-empty-icon">📋</div>
+              <p>No installments found</p>
+            </div>
+          ) : (
+            installments.map((installment, index) => {
+              const status = (installment.status || '').toLowerCase();
               const installmentId = installment.installment_id;
               const isProcessing = processingPayment[installmentId] || false;
-              const status = (installment.status || 'pending').toLowerCase();
-              const isPaid = status === 'paid';
-              const isPending = status === 'pending' || status === 'overdue';
-              const statusLabel = getStatusLabel(installment);
+              const remaining = getRemainingAmount(installment);
+              const isFullyPaid = status === 'paid' || remaining <= 0;
+              const isCancelled = status === 'cancelled';
+              const isPartial = status === 'partial' && remaining > 0;
+
+              // ✅ Pay Now shows for pending, partial, overdue (not cancelled, not fully paid)
+              const showPayNowButton = !isCancelled && !isFullyPaid;
+              // ✅ Payment Details only shows for fully paid or partial
+              const showPaymentDetailsBtn = status === 'paid' || status === 'partial';
+
+              // Left border color by status
+              let borderClass = 'ph-card-pending';
+              if (status === 'paid') borderClass = 'ph-card-paid';
+              else if (status === 'partial') borderClass = 'ph-card-partial';
+              else if (status === 'overdue') borderClass = 'ph-card-overdue';
 
               return (
-                <div key={installmentId || index} className={`ph-card ${isPaid ? 'paid' : ''}`}>
-                  <div className={`ph-card-strip ${isPaid ? 'strip-paid' : 'strip-upcoming'}`} />
+                <div key={installmentId || index} className={`ph-card ${borderClass}`}>
+                  {/* Card Top: Installment # + Amount */}
+                  <div className="ph-card-top">
+                    <h3 className="ph-card-title">
+                      Installment {installment.installment_no}
+                    </h3>
+                    <span className="ph-card-amount">
+                      ₹ {formatCurrency(installment.amount)} /-
+                    </span>
+                  </div>
 
-                  <div className="ph-card-body">
-                    {/* Top row */}
-                    <div className="ph-card-top">
-                      <h3 className="ph-installment-title">
-                        Installment {installment.installment_no}
-                      </h3>
-                      <span className="ph-installment-amount">
-                        {formatCurrency(installment.amount || installment.paid_amount)}
+                  {/* Status Pill */}
+                  <div className="ph-card-status">
+                    {renderStatusPill(installment)}
+                  </div>
+
+                  {/* Date / Due info */}
+                  <div className="ph-card-date">
+                    {status === 'paid' ? (
+                      <span>Paid on {formatDateTime(installment.paid_date || installment.updated_at)}</span>
+                    ) : status === 'partial' ? (
+                      <span>
+                        Paid ₹{formatCurrency(installment.paid_amount)} of ₹{formatCurrency(installment.amount)} — 
+                        {' '}Remaining ₹{formatCurrency(remaining)}
                       </span>
+                    ) : (
+                      <span>
+                        Pay between {formatDateTime(installment.due_date).split(',')[0]} - {formatDateTime(
+                          new Date(new Date(installment.due_date).setDate(new Date(installment.due_date).getDate() + 30)).toISOString()
+                        ).split(',')[0]}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Divider */}
+                  <div className="ph-card-divider"></div>
+
+                  {/* Bottom: Mode + Actions */}
+                  <div className="ph-card-bottom">
+                    {/* Left side: payment mode label (only for paid/partial) */}
+                    <div className="ph-payment-mode">
+                      {(status === 'paid' || status === 'partial') && (
+                        <span className="ph-mode-label">
+                          {installment.payment_mode
+                            ? installment.payment_mode.toUpperCase()
+                            : 'Razorpay (upi)'}
+                        </span>
+                      )}
                     </div>
 
-                    {/* Status badge */}
-                    <div className="ph-status-row">
-                      <span className={`ph-status-badge ${statusLabel.className}`}>
-                        {isPaid ? '• PAID' : `• ${statusLabel.text}`}
-                      </span>
-                    </div>
-
-                    {/* Date line */}
-                    <p className="ph-date-line">
-                      {isPaid
-                        ? formatDateTime(installment.paid_date || installment.updated_at)
-                        : `Pay between ${formatShortDate(installment.due_date)} - ${formatShortDate(installment.due_date)}`}
-                    </p>
-
-                    <div className="ph-divider" />
-
-                    {/* Bottom row */}
-                    <div className="ph-card-bottom">
-                      <span className="ph-payment-mode">
-                        {isPaid
-                          ? (installment.payment_mode || 'Razorpay (upi)')
-                          : ''}
-                      </span>
-
-                      {isPaid && (
+                    {/* Right side: action buttons */}
+                    <div className="ph-card-actions">
+                      {/* Payment Details button (for paid or partial) */}
+                      {showPaymentDetailsBtn && (
                         <button
-                          className="ph-outline-btn"
-                          onClick={() => navigate(`/payment-details/${installmentId}`, { state: { installment } })}
+                          className="ph-payment-details-btn"
+                          onClick={() => setShowPaymentDetails(installment)}
                         >
                           Payment Details
                         </button>
                       )}
 
-                      {isPending && (
+                      {/* ✅ Pay Now button (shows for pending, partial, overdue) */}
+                      {showPayNowButton && (
                         <button
-                          className="ph-paynow-btn"
-                          onClick={() => handlePayment(installment)}
+                          className="ph-pay-now-btn"
+                          onClick={() => openPaymentModal(installment)}
                           disabled={isProcessing}
+                          title={`Pay remaining ₹${remaining.toFixed(2)}`}
                         >
-                          {isProcessing ? 'Processing...' : 'Pay Now'}
+                          {isProcessing
+                            ? 'Processing...'
+                            : isPartial
+                              ? `Pay Remaining ₹${formatCurrency(remaining)}`
+                              : 'Pay Now'}
                         </button>
                       )}
                     </div>
@@ -534,29 +605,170 @@ function Schemeinstallmentpayments() {
                 </div>
               );
             })
-          ) : (
-            <div className="ph-no-data">
-              <p>No installments found</p>
-              <span>No {filter} installments available</span>
-            </div>
           )}
         </div>
+
+        {/* Bottom spacer for floating button */}
+        {currentDue && <div style={{ height: '100px' }}></div>}
       </div>
 
-      {/* Floating Pay Current Due button */}
-      {currentDueInstallment && (
+      {/* ================= FLOATING "PAY CURRENT DUE" BUTTON ================= */}
+      {currentDue && (
         <button
-          className="ph-floating-pay-btn"
-          onClick={() => handlePayment(currentDueInstallment)}
-          disabled={processingPayment[currentDueInstallment.installment_id]}
+          className="ph-float-pay-btn"
+          onClick={() => openPaymentModal(currentDue)}
         >
-          {processingPayment[currentDueInstallment.installment_id]
-            ? 'Processing...'
-            : 'Pay Current Due'}
+          Pay Current Due
         </button>
+      )}
+
+      {/* ================= PARTIAL PAYMENT MODAL ================= */}
+      {showPaymentModal && selectedInstallment && (
+        <div className="ph-modal-overlay" onClick={closePaymentModal}>
+          <div className="ph-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ph-modal-header">
+              <h3>Make Payment</h3>
+              <button className="ph-modal-close" onClick={closePaymentModal}>✕</button>
+            </div>
+
+            <div className="ph-modal-body">
+              <div className="ph-modal-summary">
+                <div className="ph-modal-row">
+                  <span>Installment #</span>
+                  <strong>{selectedInstallment.installment_no}</strong>
+                </div>
+                <div className="ph-modal-row">
+                  <span>Total Amount</span>
+                  <strong>₹ {formatCurrency(selectedInstallment.amount)}</strong>
+                </div>
+                <div className="ph-modal-row">
+                  <span>Already Paid</span>
+                  <strong>₹ {formatCurrency(selectedInstallment.paid_amount || 0)}</strong>
+                </div>
+                <div className="ph-modal-row highlight">
+                  <span>Remaining</span>
+                  <strong>₹ {formatCurrency(getRemainingAmount(selectedInstallment))}</strong>
+                </div>
+              </div>
+
+              <div className="ph-modal-input-group">
+                <label>Enter Payment Amount *</label>
+                <div className="ph-modal-input-wrap">
+                  <span className="ph-rupee">₹</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    max={getRemainingAmount(selectedInstallment)}
+                    value={paymentAmount}
+                    onChange={(e) => {
+                      setPaymentAmount(e.target.value);
+                      setPaymentError('');
+                    }}
+                    placeholder="Enter amount"
+                    autoFocus
+                  />
+                </div>
+                {paymentError && (
+                  <p className="ph-modal-error">⚠ {paymentError}</p>
+                )}
+                <div className="ph-quick-amounts">
+                  <button onClick={() => {
+                    setPaymentAmount(getRemainingAmount(selectedInstallment).toString());
+                    setPaymentError('');
+                  }}>Full</button>
+                  <button onClick={() => {
+                    setPaymentAmount((getRemainingAmount(selectedInstallment) / 2).toFixed(2));
+                    setPaymentError('');
+                  }}>50%</button>
+                  <button onClick={() => { setPaymentAmount('1000'); setPaymentError(''); }}>₹1000</button>
+                  <button onClick={() => { setPaymentAmount('500'); setPaymentError(''); }}>₹500</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="ph-modal-footer">
+              <button className="ph-btn-cancel" onClick={closePaymentModal}>Cancel</button>
+              <button
+                className="ph-btn-proceed"
+                onClick={handleProceedToPayment}
+                disabled={!!processingPayment[selectedInstallment.installment_id]}
+              >
+                {processingPayment[selectedInstallment.installment_id]
+                  ? 'Processing...'
+                  : 'Proceed to Pay'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= PAYMENT DETAILS MODAL ================= */}
+      {showPaymentDetails && (
+        <div className="ph-modal-overlay" onClick={() => setShowPaymentDetails(null)}>
+          <div className="ph-modal ph-details-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ph-modal-header">
+              <h3>Payment Details</h3>
+              <button className="ph-modal-close" onClick={() => setShowPaymentDetails(null)}>✕</button>
+            </div>
+            <div className="ph-modal-body">
+              <div className="ph-modal-summary">
+                <div className="ph-modal-row">
+                  <span>Installment #</span>
+                  <strong>{showPaymentDetails.installment_no}</strong>
+                </div>
+                <div className="ph-modal-row">
+                  <span>Total Amount</span>
+                  <strong>₹ {formatCurrency(showPaymentDetails.amount)}</strong>
+                </div>
+                <div className="ph-modal-row">
+                  <span>Amount Paid</span>
+                  <strong>₹ {formatCurrency(showPaymentDetails.paid_amount || showPaymentDetails.amount)}</strong>
+                </div>
+                {getRemainingAmount(showPaymentDetails) > 0 && (
+                  <div className="ph-modal-row highlight">
+                    <span>Remaining</span>
+                    <strong>₹ {formatCurrency(getRemainingAmount(showPaymentDetails))}</strong>
+                  </div>
+                )}
+                <div className="ph-modal-row">
+                  <span>Paid Date</span>
+                  <strong>{formatDateTime(showPaymentDetails.paid_date || showPaymentDetails.updated_at)}</strong>
+                </div>
+                <div className="ph-modal-row">
+                  <span>Payment Mode</span>
+                  <strong>{showPaymentDetails.payment_mode || 'N/A'}</strong>
+                </div>
+                <div className="ph-modal-row">
+                  <span>Receipt No</span>
+                  <strong>{showPaymentDetails.receipt_number || 'N/A'}</strong>
+                </div>
+                {showPaymentDetails.transaction_reference && (
+                  <div className="ph-modal-row">
+                    <span>Transaction Ref</span>
+                    <strong>{showPaymentDetails.transaction_reference}</strong>
+                  </div>
+                )}
+                <div className="ph-modal-row">
+                  <span>Status</span>
+                  <strong style={{ textTransform: 'capitalize' }}>{showPaymentDetails.status}</strong>
+                </div>
+              </div>
+            </div>
+            <div className="ph-modal-footer">
+              <button
+                className="ph-btn-proceed"
+                style={{ width: '100%' }}
+                onClick={() => setShowPaymentDetails(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
-export default Schemeinstallmentpayments;
+export default Schemesinstallments;

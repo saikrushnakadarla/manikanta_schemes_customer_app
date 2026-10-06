@@ -10,7 +10,7 @@ import baseURL from '../URL/BaseURL';
 // ---- Adjust these routes to match your app ----
 const ROUTES = {
   rewards: '/rewards',
-  schemes: '/allschemes'
+  schemes: '/my-enrollments'
 };
 
 const MORE_OPTIONS = [
