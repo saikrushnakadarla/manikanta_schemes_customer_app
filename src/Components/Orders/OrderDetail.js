@@ -13,6 +13,9 @@ const OrderDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [cancelling, setCancelling] = useState(false);
+  // UI-only state (new)
+  const [showStatus, setShowStatus] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
 
   // Get current logged-in customer ID
   const getCustomerId = () => {
@@ -141,7 +144,10 @@ const OrderDetail = () => {
       placedAt: orderData.placed_at,
       createdAt: orderData.created_at,
       updatedAt: orderData.updated_at,
-      customer: orderData.customer
+      customer: orderData.customer,
+      // extra optional fields used only for display in the payment sheet
+      razorpayOrderId: orderData.razorpay_order_id || orderData.payment_order_id || '',
+      transactionId: orderData.transaction_id || orderData.razorpay_payment_id || orderData.payment_id || ''
     };
   };
 
@@ -188,7 +194,7 @@ const OrderDetail = () => {
     return icons[status] || '📋';
   };
 
-  // Get tracking steps
+  // Get tracking steps (kept as-is)
   const getTrackingSteps = (status) => {
     const steps = [
       { label: 'Order Placed', completed: true },
@@ -197,6 +203,27 @@ const OrderDetail = () => {
       { label: 'Delivered', completed: status === 'Delivered' || status === 'Completed' }
     ];
     return steps;
+  };
+
+  // Status timeline used by the "Order Status" screen
+  const statusTimeline = [
+    { label: 'Pending', text: 'Your order has been placed and awaiting confirmation' },
+    { label: 'Accepted', text: 'Your order has been successfully accepted' },
+    { label: 'In Progress', text: 'Your order has been accepted and is now in progress' },
+    { label: 'Order Ready', text: 'Your order is ready and will be dispatched shortly!' },
+    { label: 'Dispatched', text: 'Your order has been dispatched and will be delivered to your doorstep soon' },
+    { label: 'Delivered', text: 'Your order has been successfully delivered to your doorstep' }
+  ];
+
+  // Index of the current step in the timeline
+  const getCurrentStepIndex = (status) => {
+    const s = String(status || '').toLowerCase();
+    if (s === 'delivered' || s === 'completed') return 5;
+    if (s === 'shipped' || s === 'dispatched') return 4;
+    if (s.includes('ready')) return 3;
+    if (s.includes('progress')) return 2;
+    if (s === 'accepted' || s === 'confirmed') return 1;
+    return 0; // Pending / Processing
   };
 
   // Format date
@@ -208,6 +235,59 @@ const OrderDetail = () => {
       month: 'long', 
       year: 'numeric' 
     });
+  };
+
+  // Format date + time for "Placed On"
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'N/A';
+    const day = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+    const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    return `${day}, ${time}`;
+  };
+
+  const money = (n) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // Download invoice (opens printable invoice; user can "Save as PDF")
+  const handleDownloadInvoice = () => {
+    const customer = order.customer && typeof order.customer === 'object' ? order.customer : {};
+    const rows = order.items.map((it, i) => `
+      <tr>
+        <td>${i + 1}</td><td>${it.name}</td><td>${it.weight}</td><td>${it.quantity}</td>
+        <td>₹${money(it.price)}</td><td>₹${money(it.price * it.quantity)}</td>
+      </tr>`).join('');
+    const w = window.open('', '_blank');
+    if (!w) {
+      Swal.fire({ title: 'Popup blocked', text: 'Please allow popups to download the invoice.', icon: 'info', background: '#1a1a1a', color: '#ffffff' });
+      return;
+    }
+    w.document.write(`<!doctype html><html><head><title>Invoice ${order.invoiceNumber || order.orderNumber}</title>
+      <style>
+        body{font-family:Arial,sans-serif;padding:30px;color:#222}
+        h1{margin:0 0 6px;font-size:26px} .muted{color:#666;font-size:13px}
+        table{width:100%;border-collapse:collapse;margin-top:20px;font-size:13px}
+        th{background:#c9a84c;color:#fff;text-align:left;padding:8px} td{padding:8px;border-bottom:1px solid #eee}
+        .totals{margin-top:20px;margin-left:auto;width:280px;font-size:14px}
+        .totals div{display:flex;justify-content:space-between;padding:4px 0}
+        .grand{font-weight:700;border-top:1px solid #ccc;margin-top:6px;padding-top:8px!important}
+      </style></head><body>
+      <h1>Tax Invoice</h1>
+      <div class="muted">Invoice Number: ${order.invoiceNumber || order.orderNumber}</div>
+      <div class="muted">Invoice Date: ${formatDate(order.invoiceDate || order.placedAt || order.date)}</div>
+      <p><b>Name:</b> ${customer.name || customer.first_name || ''}<br/>
+         <b>Address:</b> ${order.shippingAddress}<br/>
+         <b>Payment Mode:</b> ${order.paymentMethod}</p>
+      <table><thead><tr><th>SL</th><th>Particulars</th><th>Weight</th><th>Qty</th><th>Amount</th><th>Total</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+      <div class="totals">
+        <div><span>Subtotal</span><span>₹${money(order.subtotal)}</span></div>
+        ${order.taxAmount > 0 ? `<div><span>Tax</span><span>₹${money(order.taxAmount)}</span></div>` : ''}
+        <div class="grand"><span>Grand Total</span><span>₹${money(order.total)}</span></div>
+      </div>
+      <script>window.onload=function(){window.print();}</script>
+      </body></html>`);
+    w.document.close();
   };
 
   // Handle cancel order using DELETE API
@@ -465,224 +545,268 @@ const OrderDetail = () => {
     );
   }
 
+  const isPaid = String(order.paymentStatus).toLowerCase() === 'paid';
+  const currentStep = getCurrentStepIndex(order.status);
+  const customerObj = order.customer && typeof order.customer === 'object' ? order.customer : {};
+  const customerName = customerObj.name || customerObj.first_name || '';
+  const customerPhone = customerObj.phone || customerObj.mobile || customerObj.phone_number || '';
+
+  // ---------- ORDER STATUS SCREEN ----------
+  if (showStatus) {
+    return (
+      <div>
+        <Navbar />
+        <div className="od-page">
+          <div className="od-wrap">
+            <div className="od-topbar">
+              <button className="od-back" onClick={() => setShowStatus(false)} aria-label="Back">←</button>
+              <h2>Order Status</h2>
+            </div>
+
+            {(order.status === 'Cancelled' || order.status === 'Failed') && (
+              <div className="od-cancelled">
+                ⚠️ This order was {order.status.toLowerCase()}
+                {order.cancelledAt ? ` on ${formatDate(order.cancelledAt)}` : ''}
+                {order.remarks && <p>Reason: {order.remarks}</p>}
+              </div>
+            )}
+
+            <div className="od-timeline">
+              {statusTimeline.map((step, i) => {
+                const done = i <= currentStep && order.status !== 'Cancelled' && order.status !== 'Failed';
+                const lineDone = i < currentStep && order.status !== 'Cancelled' && order.status !== 'Failed';
+                return (
+                  <div key={step.label} className={`od-step ${done ? 'done' : ''}`}>
+                    <div className="od-step-rail">
+                      <span className="od-dot"></span>
+                      {i < statusTimeline.length - 1 && <span className={`od-line ${lineDone ? 'done' : ''}`}></span>}
+                    </div>
+                    <div className="od-step-text">
+                      <h4>{step.label}</h4>
+                      <p>{step.text}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // ---------- ORDER DETAILS SCREEN ----------
   return (
     <div>
       <Navbar />
-      <div className="order-detail-page">
-        {/* Back Button */}
-        <button className="back-button" onClick={() => navigate('/orders')}>
-          ← Back to Orders
-        </button>
+      <div className="od-page">
+        <div className="od-wrap">
+          {/* Top bar */}
+          <div className="od-topbar">
+            <button className="od-back" onClick={() => navigate('/orders')} aria-label="Back to Orders">←</button>
+            <h2>Order Details</h2>
+          </div>
 
-        <div className="order-detail-container">
-          {/* Order Header */}
-          <div className="order-detail-header">
-            <div className="order-header-left">
-              <h1>Order #{order.orderNumber || order.id}</h1>
-              <div className="order-meta">
-                <span className="order-date">📅 {formatDate(order.placedAt || order.date)}</span>
-                <span className="order-payment">💳 {order.paymentMethod}</span>
-                {order.paymentStatus && (
-                  <span className={`payment-status ${order.paymentStatus.toLowerCase()}`}>
-                    {order.paymentStatus}
-                  </span>
-                )}
-              </div>
+          {/* Order No / Placed On */}
+          <div className="od-head">
+            <div className="od-head-row">
+              <span className="od-head-label">Order No</span>
+              <span className="od-head-number">#{order.orderNumber || order.id}</span>
             </div>
-            <div className="order-header-right">
-              <span 
-                className="status-badge-large"
-                style={{ backgroundColor: getStatusColor(order.status) }}
-              >
-                {getStatusIcon(order.status)} {order.status}
-              </span>
+            <div className="od-head-row">
+              <span className="od-head-sub">Placed On</span>
+              <span className="od-head-sub">{formatDateTime(order.placedAt || order.date)}</span>
             </div>
           </div>
 
-          {/* Tracking Timeline */}
-          {order.status !== 'Cancelled' && order.status !== 'Failed' && (
-            <div className="tracking-timeline">
-              <h3>📋 Order Tracking</h3>
-              <div className="timeline-steps">
-                {getTrackingSteps(order.status).map((step, index) => (
-                  <div key={index} className={`timeline-step ${step.completed ? 'completed' : ''}`}>
-                    <div className="step-circle">{step.completed ? '✓' : index + 1}</div>
-                    <div className="step-label">{step.label}</div>
-                    {index < getTrackingSteps(order.status).length - 1 && (
-                      <div className={`step-line ${step.completed ? 'completed' : ''}`}></div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Cancelled Order Info */}
-          {order.status === 'Cancelled' && order.cancelledAt && (
-            <div className="cancelled-info">
-              <div className="cancelled-banner">
-                ⚠️ This order was cancelled on {formatDate(order.cancelledAt)}
-                {order.remarks && <p className="cancelled-remarks">Reason: {order.remarks}</p>}
-              </div>
-            </div>
-          )}
-
-          {/* Order Items */}
-          <div className="order-items-section">
-            <h3>🛍️ Items in this Order</h3>
-            <div className="order-items-list">
-              {order.items.map((item, index) => (
-                <div key={index} className="order-detail-item">
-                  <img 
-                    src={item.image} 
-                    alt={item.name}
-                    onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/400x400/FFD700/FFFFFF?text=Jewellery';
-                    }}
-                  />
-                  <div className="item-details">
-                    <h4 className="item-name">{item.name}</h4>
-                    <p className="item-description">{item.description}</p>
-                    <div className="item-specs">
-                      <span className="spec">⚙️ {item.metal}</span>
-                      <span className="spec">⚖️ {item.weight}</span>
-                      <span className="spec">📦 Qty: {item.quantity}</span>
-                      {item.purity && (
-                        <span className="spec">💎 {item.purity}%</span>
-                      )}
-                      {item.barcode && (
-                        <span className="spec">📋 {item.barcode}</span>
-                      )}
-                    </div>
-                    <div className="item-price-detail">
-                      <span className="item-price">₹{item.price.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
-                      <span className="item-subtotal">
-                        Subtotal: ₹{(item.price * item.quantity).toLocaleString(undefined, {maximumFractionDigits: 2})}
-                      </span>
-                      {item.gstAmount > 0 && (
-                        <span className="item-gst">GST: ₹{item.gstAmount.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Order Summary */}
-          <div className="order-summary-section">
-            <div className="summary-grid">
-              <div className="summary-left">
-                <h3>📍 Shipping Address</h3>
-                <p className="address-text">{order.shippingAddress}</p>
-                {order.trackingNumber && (
-                  <div className="tracking-info">
-                    <span className="tracking-label">📦 Tracking Number:</span>
-                    <span className="tracking-number">{order.trackingNumber}</span>
-                  </div>
-                )}
-                {order.expectedDelivery && order.status !== 'Delivered' && order.status !== 'Cancelled' && order.status !== 'Completed' && (
-                  <div className="delivery-estimate">
-                    <span className="delivery-label">🚚 Estimated Delivery:</span>
-                    <span className="delivery-date">
-                      {formatDate(order.expectedDelivery)}
+          {/* Items */}
+          <div className="od-items">
+            {order.items.map((item, index) => (
+              <div key={index} className="od-item">
+                <img
+                  className="od-item-img"
+                  src={item.image}
+                  alt={item.name}
+                  onError={(e) => {
+                    e.target.src = 'https://via.placeholder.com/400x400/FFD700/FFFFFF?text=Jewellery';
+                  }}
+                />
+                <div className="od-item-info">
+                  <h4 className="od-item-name">{item.name}</h4>
+                  <span className="od-item-qty">Quantity - {item.quantity} {item.quantity === 1 ? 'Item' : 'Items'}</span>
+                  <div className="od-item-meta">
+                    <span>{item.metal} • {item.weight}</span>
+                    {item.purity && <span>Purity: {item.purity}%</span>}
+                    {item.barcode && <span>Code: {item.barcode}</span>}
+                    <span className="od-item-total">
+                      Total Price: ₹ {(item.price * item.quantity).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                     </span>
                   </div>
-                )}
-                {order.deliveredAt && (order.status === 'Delivered' || order.status === 'Completed') && (
-                  <div className="delivered-info">
-                    <span className="delivered-label">✅ Delivered On:</span>
-                    <span className="delivered-date">{formatDate(order.deliveredAt)}</span>
-                  </div>
-                )}
-                {order.invoiceNumber && (
-                  <div className="invoice-info">
-                    <span className="invoice-label">📄 Invoice Number:</span>
-                    <span className="invoice-number">{order.invoiceNumber}</span>
-                  </div>
-                )}
+                  {index === 0 && (
+                    <button
+                      className="od-status-btn"
+                      style={{ backgroundColor: getStatusColor(order.status) }}
+                      onClick={() => setShowStatus(true)}
+                    >
+                      {order.status} &gt;
+                    </button>
+                  )}
+                </div>
               </div>
+            ))}
+          </div>
 
-              <div className="summary-right">
-                <h3>💰 Order Summary</h3>
-                <div className="summary-row">
-                  <span>Subtotal</span>
-                  <span>₹{order.subtotal.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
+          {/* Cancel */}
+          {(order.status === 'Processing' || order.status === 'Pending') && (
+            <button className="od-cancel-btn" onClick={handleCancelOrder} disabled={cancelling}>
+              {cancelling ? 'Cancelling...' : 'Cancel Order'}
+            </button>
+          )}
+
+          {/* Cancelled info */}
+          {order.status === 'Cancelled' && order.cancelledAt && (
+            <div className="od-cancelled">
+              ⚠️ This order was cancelled on {formatDate(order.cancelledAt)}
+              {order.remarks && <p>Reason: {order.remarks}</p>}
+            </div>
+          )}
+
+          {/* Order Tracking */}
+          {order.status !== 'Cancelled' && order.status !== 'Failed' && (
+            <>
+              <hr className="od-divider" />
+              <div className="od-section">
+                <div className="od-track-head">
+                  <h3>Order Tracking</h3>
+                  <button className="od-track-link" onClick={() => setShowStatus(true)}>
+                    View Status &gt;
+                  </button>
                 </div>
-                {order.discount > 0 && (
-                  <div className="summary-row discount">
-                    <span>Discount</span>
-                    <span>-₹{order.discount.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
-                  </div>
-                )}
-                {order.shippingCharge > 0 && (
-                  <div className="summary-row">
-                    <span>Shipping</span>
-                    <span>₹{order.shippingCharge.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
-                  </div>
-                )}
-                {order.taxAmount > 0 && (
-                  <div className="summary-row">
-                    <span>Tax</span>
-                    <span>₹{order.taxAmount.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
-                  </div>
-                )}
-                <div className="summary-divider"></div>
-                <div className="summary-row total">
-                  <span>Total</span>
-                  <span className="total-amount">₹{order.total.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
+                <div className="od-track">
+                  {getTrackingSteps(order.status).map((step, index, arr) => (
+                    <div key={index} className={`od-track-step ${step.completed ? 'completed' : ''}`}>
+                      <div className="od-track-circle">{step.completed ? '✓' : index + 1}</div>
+                      <div className="od-track-label">{step.label}</div>
+                      {index < arr.length - 1 && (
+                        <div className={`od-track-line ${step.completed && arr[index + 1].completed ? 'completed' : ''}`}></div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                <div className="payment-method">
-                  <span>💳 Payment Method:</span>
-                  <span>{order.paymentMethod}</span>
-                </div>
-                {order.remarks && (
-                  <div className="order-remarks">
-                    <span>📝 Remarks:</span>
-                    <span>{order.remarks}</span>
+                {order.trackingNumber && (
+                  <div className="od-track-number">
+                    <span>Tracking Number</span>
+                    <strong>{order.trackingNumber}</strong>
                   </div>
                 )}
               </div>
+            </>
+          )}
+
+          <hr className="od-divider" />
+
+          {/* Remarks */}
+          <div className="od-section">
+            <h3>Remarks</h3>
+            <p className="od-muted">{order.remarks ? order.remarks : 'No remarks added'}</p>
+          </div>
+
+          <hr className="od-divider" />
+
+          {/* Payment Information */}
+          <div className="od-section">
+            <h3>Payment Information</h3>
+            <div className="od-card od-pay-card" onClick={() => setShowPayment(true)}>
+              <div className="od-pay-col">
+                <span className="od-pay-label">Payment Status</span>
+                <span className={`od-pay-pill ${isPaid ? 'paid' : 'unpaid'}`}>{order.paymentStatus}</span>
+              </div>
+              <div className="od-pay-sep"></div>
+              <div className="od-pay-col">
+                <span className="od-pay-label">Payment Type</span>
+                <span className="od-pay-value">{order.paymentMethod}</span>
+              </div>
+              <span className="od-chevron">›</span>
+            </div>
+          </div>
+
+          <hr className="od-divider" />
+
+          {/* Download invoice */}
+          <button className="od-invoice-row" onClick={handleDownloadInvoice}>
+            <span>Download Invoice</span>
+            <span className="od-chevron">›</span>
+          </button>
+
+          <hr className="od-divider" />
+
+          {/* Delivery Address */}
+          <div className="od-section">
+            <h3>Delivery Address</h3>
+            <div className="od-card od-address">
+              {customerName && <p className="od-addr-name">{customerName}</p>}
+              {customerPhone && <p className="od-addr-phone">+91 {customerPhone}</p>}
+              <p className="od-addr-text">{order.shippingAddress}</p>
+              {order.expectedDelivery && order.status !== 'Delivered' && order.status !== 'Cancelled' && order.status !== 'Completed' && (
+                <p className="od-addr-extra">🚚 Estimated Delivery: {formatDate(order.expectedDelivery)}</p>
+              )}
+              {order.deliveredAt && (order.status === 'Delivered' || order.status === 'Completed') && (
+                <p className="od-addr-extra">✅ Delivered On: {formatDate(order.deliveredAt)}</p>
+              )}
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="order-action-buttons">
-            {(order.status === 'Processing' || order.status === 'Pending') && (
-              <button 
-                className="cancel-order-btn" 
-                onClick={handleCancelOrder}
-                disabled={cancelling}
-              >
-                {cancelling ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    Cancelling...
-                  </>
-                ) : (
-                  '❌ Cancel Order'
-                )}
-              </button>
-            )}
+          <div className="od-actions">
             {(order.status === 'Delivered' || order.status === 'Completed') && (
               <>
-                <button className="review-btn">
-                  ⭐ Write a Review
-                </button>
-                <button className="reorder-btn" onClick={handleReorder}>
-                  🔄 Reorder All
-                </button>
+                <button className="od-btn od-btn-review">⭐ Write a Review</button>
+                <button className="od-btn od-btn-reorder" onClick={handleReorder}>🔄 Reorder All</button>
               </>
             )}
-            <button 
-              className="continue-shopping-btn"
-              onClick={() => navigate('/products')}
-            >
-              🛍️ Continue Shopping
+            <button className="od-btn od-btn-primary" onClick={() => navigate('/products')}>
+              Continue Shopping
             </button>
           </div>
         </div>
-      </div> 
+      </div>
+
+      {/* Payment Details bottom sheet */}
+      {showPayment && (
+        <div className="od-overlay" onClick={() => setShowPayment(false)}>
+          <div className="od-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="od-sheet-head">
+              <div>
+                <h3>Payment Details</h3>
+                {order.razorpayOrderId && <span className="od-sheet-sub">{order.razorpayOrderId}</span>}
+              </div>
+              {isPaid && <span className="od-paid-seal">PAID</span>}
+            </div>
+
+            <div className="od-kv"><span>Transaction Id</span><span>{order.transactionId || 'N/A'}</span></div>
+            <div className="od-kv"><span>Invoice No</span><span>{order.invoiceNumber ? `#${order.invoiceNumber}` : 'N/A'}</span></div>
+            <div className="od-kv"><span>Paid Date</span><span>{formatDate(order.invoiceDate || order.updatedAt || order.placedAt)}</span></div>
+            <div className="od-kv"><span>Payment Mode</span><span>{order.paymentMethod}</span></div>
+            <div className="od-kv"><span>Status</span><span>{order.paymentStatus}</span></div>
+
+            <h3 className="od-sheet-title2">Amount Details</h3>
+            <div className="od-kv light"><span>Subtotal</span><span>₹ {money(order.subtotal)}</span></div>
+            {order.discount > 0 && <div className="od-kv light"><span>Discount</span><span>-₹ {money(order.discount)}</span></div>}
+            {order.shippingCharge > 0 && <div className="od-kv light"><span>Shipping</span><span>₹ {money(order.shippingCharge)}</span></div>}
+            {order.taxAmount > 0 && <div className="od-kv light"><span>Tax</span><span>₹ {money(order.taxAmount)}</span></div>}
+            <div className="od-kv light"><span>Total</span><span>₹ {money(order.total)}</span></div>
+
+            <button className="od-sheet-invoice" onClick={handleDownloadInvoice}>
+              <span className="od-dl-icon">⬇</span>
+              <span>Download Invoice</span>
+              <span className="od-dl-arrow">→</span>
+            </button>
+
+            <button className="od-sheet-close" onClick={() => setShowPayment(false)}>Close</button>
+          </div>
+        </div>
+      )}
       <Footer/>
     </div>
   );

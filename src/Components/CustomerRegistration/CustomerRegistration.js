@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom'; // Changed: useHistory → useNavigate
+import { useNavigate, useLocation, Link } from 'react-router-dom'; // Changed: useHistory → useNavigate
 import Navbar from '../Navbar/LoginNavbar';
 import Swal from 'sweetalert2';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 import './CustomerRegistration.css';
 import baseURL from '../URL/BaseURL';
 
@@ -239,7 +240,7 @@ function CustomersForm() {
           title: 'Success!',
           text: isEditMode ? 'Customer updated successfully!' : 'Customer registered successfully!',
           icon: 'success',
-          confirmButtonColor: '#667eea',
+          confirmButtonColor: '#512579',
           timer: 2000,
           timerProgressBar: true
         });
@@ -267,7 +268,7 @@ function CustomersForm() {
       text: 'Are you sure you want to cancel? Any unsaved changes will be lost.',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#667eea',
+      confirmButtonColor: '#512579',
       cancelButtonColor: '#dc3545',
       confirmButtonText: 'Yes, cancel',
       cancelButtonText: 'No, stay'
@@ -279,260 +280,255 @@ function CustomersForm() {
   };
 
   return (
-    <div className="customersform-page">
+    <div className="cr-page">
       <Navbar />
       
-      <div className="customersform-content">
-        <div className="container-fluid">
-          <div className="customersform-header">
-            {/* <div className="header-badge">
-              <i className={`bi ${isEditMode ? 'bi-pencil-square' : 'bi-person-plus-fill'}`}></i>
-              <span>{isEditMode ? 'Edit Customer' : 'Customer Registration'}</span>
-            </div> */}
-            <h1 className="customersform-title">
-              <i className="bi bi-people-fill"></i>
-              {isEditMode ? 'Edit Customer' : 'New Customer Registration'}
+      <div className="cr-content">
+        <button type="button" className="cr-back-pill" aria-label="Go back" onClick={() => navigate(-1)}>
+          <i className="bi bi-arrow-left"></i>
+        </button>
+
+        <div className="cr-form-card">
+          <div className="cr-header">
+            <h1 className="cr-title">
+              {isEditMode ? 'Edit Customer' : 'Create account'}
             </h1>
-            <p className="customersform-subtitle">
-              {isEditMode ? 'Update customer information' : 'Fill in the details to register a new customer'}
+            <p className="cr-subtitle">
+              {isEditMode ? 'Update customer information' : 'No account? Create one here'}
             </p>
           </div>
 
-          <div className="form-card">
-            {/* Step Progress Bar */}
-            <div className="step-progress">
-              <div className={`step ${currentStep >= 1 ? 'active' : ''}`}>
-                <div className="step-number">1</div>
-                <div className="step-label">Personal Info</div>
-              </div>
-              <div className={`step-line ${currentStep >= 2 ? 'active' : ''}`}></div>
-              <div className={`step ${currentStep >= 2 ? 'active' : ''}`}>
-                <div className="step-number">2</div>
-                <div className="step-label">Address</div>
-              </div>
-              <div className={`step-line ${currentStep >= 3 ? 'active' : ''}`}></div>
-              <div className={`step ${currentStep >= 3 ? 'active' : ''}`}>
-                <div className="step-number">3</div>
-                <div className="step-label">KYC Details</div>
-              </div>
-              <div className={`step-line ${currentStep >= 4 ? 'active' : ''}`}></div>
-              <div className={`step ${currentStep >= 4 ? 'active' : ''}`}>
-                <div className="step-number">4</div>
-                <div className="step-label">Nominee</div>
-              </div>
+          {/* Step Progress Bar */}
+          <div className="cr-step-progress">
+            <div className={`cr-step ${currentStep >= 1 ? 'cr-active' : ''} ${currentStep === 1 ? 'cr-current' : ''}`} aria-current={currentStep === 1 ? 'step' : undefined}>
+              <div className="cr-step-number">{currentStep > 1 ? <i className="bi bi-check-lg"></i> : 1}</div>
+              <div className="cr-step-label">Personal Info</div>
             </div>
-
-            <form onSubmit={(e) => e.preventDefault()}>
-              {/* Step 1: Personal Information */}
-              {currentStep === 1 && (
-                <div className="step-content">
-                  <h3 className="step-title">
-                    <i className="bi bi-person-circle"></i>
-                    Personal Information
-                  </h3>
-                  
-                  <div className="form-group">
-                    <label>Account Name <span className="required">*</span></label>
-                    <input type="text" name="account_name" className="form-control" placeholder="Enter account name" value={formData.account_name} onChange={handleInputChange} required />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Print Name</label>
-                    <input type="text" name="print_name" className="form-control" placeholder="Enter print name" value={formData.print_name} onChange={handleInputChange} />
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Email Address <span className="required">*</span></label>
-                      <input type="email" name="email" className="form-control" placeholder="Enter email" value={formData.email} onChange={handleInputChange} required />
-                    </div>
-                    <div className="form-group">
-                      <label>Phone Number <span className="required">*</span></label>
-                      <input type="text" name="phone" className="form-control" placeholder="10+ digits" value={formData.phone} onChange={handleInputChange} required />
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Mobile Number</label>
-                      <input type="text" name="mobile" className="form-control" placeholder="Mobile number" value={formData.mobile} onChange={handleInputChange} />
-                    </div>
-                    <div className="form-group">
-                      <label>Opening Balance</label>
-                      <input type="number" name="op_bal" className="form-control" placeholder="Opening balance" value={formData.op_bal} onChange={handleInputChange} step="0.01" />
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Account Group</label>
-                      <input type="text" name="account_group" className="form-control" value={formData.account_group} onChange={handleInputChange} />
-                    </div>
-                    <div className="form-group">
-                      <label>DR/CR</label>
-                      <select name="dr_cr" className="form-control" value={formData.dr_cr} onChange={handleInputChange}>
-                        <option value="DR">DR</option>
-                        <option value="CR">CR</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Password {!isEditMode && <span className="required">*</span>}</label>
-                    <div className="password-input-wrapper">
-                      <input type={showPassword ? "text" : "password"} name="password" className="form-control" placeholder={isEditMode ? "Leave blank to keep current" : "Enter password"} value={formData.password} onChange={handleInputChange} required={!isEditMode} />
-                      <button type="button" className="toggle-password" onClick={() => setShowPassword(!showPassword)}>
-                        <i className={`bi bi-${showPassword ? 'eye-slash' : 'eye'}-fill`}></i>
-                      </button>
-                    </div>
-                    {!isEditMode && <small className="form-text">Password must be at least 6 characters</small>}
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Customer Status</label>
-                      <select name="customer_status" className="form-control" value={formData.customer_status} onChange={handleInputChange}>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>KYC Status</label>
-                      <select name="kyc_status" className="form-control" value={formData.kyc_status} onChange={handleInputChange}>
-                        <option value="pending">Pending</option>
-                        <option value="verified">Verified</option>
-                        <option value="rejected">Rejected</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Join Date</label>
-                    <input type="date" name="join_date" className="form-control" value={formData.join_date} onChange={handleInputChange} />
-                  </div>
-                </div>
-              )}
-
-              {/* Step 2: Address Information */}
-              {currentStep === 2 && (
-                <div className="step-content">
-                  <h3 className="step-title">
-                    <i className="bi bi-geo-alt-fill"></i>
-                    Address Information
-                  </h3>
-
-                  <div className="form-group">
-                    <label>Address</label>
-                    <input type="text" name="address" className="form-control" placeholder="Street address" value={formData.address} onChange={handleInputChange} />
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>City</label>
-                      <input type="text" name="city" className="form-control" placeholder="City" value={formData.city} onChange={handleInputChange} />
-                    </div>
-                    <div className="form-group">
-                      <label>PIN Code</label>
-                      <input type="text" name="pin" className="form-control" placeholder="6-digit PIN" value={formData.pin} onChange={handleInputChange} maxLength="6" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: KYC Details */}
-              {currentStep === 3 && (
-                <div className="step-content">
-                  <h3 className="step-title">
-                    <i className="bi bi-shield-check"></i>
-                    KYC Details
-                  </h3>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Aadhaar Number</label>
-                      <input type="text" name="aadhaar_number" className="form-control" placeholder="12-digit Aadhaar" value={formData.aadhaar_number} onChange={handleInputChange} maxLength="12" />
-                    </div>
-                    <div className="form-group">
-                      <label>PAN Number</label>
-                      <input type="text" name="pan_number" className="form-control" placeholder="PAN (e.g., ABCDE1234F)" value={formData.pan_number} onChange={handleInputChange} />
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Referral Person Name</label>
-                    <input type="text" name="referred_person_name" className="form-control" placeholder="Who referred you?" value={formData.referred_person_name} onChange={handleInputChange} />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Remarks</label>
-                    <textarea name="remarks" className="form-control" rows="3" placeholder="Any additional remarks" value={formData.remarks} onChange={handleInputChange}></textarea>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 4: Nominee Details */}
-              {currentStep === 4 && (
-                <div className="step-content">
-                  <h3 className="step-title">
-                    <i className="bi bi-person-badge-fill"></i>
-                    Nominee Information
-                  </h3>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Nominee Name</label>
-                      <input type="text" name="nominee_name" className="form-control" placeholder="Nominee full name" value={formData.nominee_name} onChange={handleInputChange} />
-                    </div>
-                    <div className="form-group">
-                      <label>Relationship</label>
-                      <input type="text" name="relationship" className="form-control" placeholder="e.g., Spouse, Son, Daughter" value={formData.relationship} onChange={handleInputChange} />
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Nominee Email</label>
-                      <input type="email" name="nominee_email" className="form-control" placeholder="Nominee email" value={formData.nominee_email} onChange={handleInputChange} />
-                    </div>
-                    <div className="form-group">
-                      <label>Nominee Phone</label>
-                      <input type="text" name="nominee_phone_number" className="form-control" placeholder="Nominee phone" value={formData.nominee_phone_number} onChange={handleInputChange} />
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Nominee Aadhaar</label>
-                      <input type="text" name="nominee_aadhaar_number" className="form-control" placeholder="12-digit Aadhaar" value={formData.nominee_aadhaar_number} onChange={handleInputChange} maxLength="12" />
-                    </div>
-                    <div className="form-group">
-                      <label>Nominee PAN</label>
-                      <input type="text" name="nominee_pan_number" className="form-control" placeholder="PAN number" value={formData.nominee_pan_number} onChange={handleInputChange} />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Form Actions */}
-              <div className="form-actions">
-                {currentStep > 1 && (
-                  <button type="button" className="btn-prev" onClick={prevStep}>
-                    <i className="bi bi-chevron-left"></i> Previous
-                  </button>
-                )}
-                <button type="button" className="btn-next" onClick={nextStep} disabled={loading}>
-                  {loading ? (
-                    <><span className="spinner-border spinner-border-sm"></span> Processing...</>
-                  ) : (
-                    currentStep === 4 ? (isEditMode ? 'Update Customer' : 'Submit Registration') : 'Next'
-                  )}
-                </button>
-                <button type="button" className="btn-cancel" onClick={handleCancel}>
-                  Cancel
-                </button>
-              </div>
-            </form>
+            <div className={`cr-step-line ${currentStep >= 2 ? 'cr-active' : ''}`}></div>
+            <div className={`cr-step ${currentStep >= 2 ? 'cr-active' : ''} ${currentStep === 2 ? 'cr-current' : ''}`} aria-current={currentStep === 2 ? 'step' : undefined}>
+              <div className="cr-step-number">{currentStep > 2 ? <i className="bi bi-check-lg"></i> : 2}</div>
+              <div className="cr-step-label">Address</div>
+            </div>
+            <div className={`cr-step-line ${currentStep >= 3 ? 'cr-active' : ''}`}></div>
+            <div className={`cr-step ${currentStep >= 3 ? 'cr-active' : ''} ${currentStep === 3 ? 'cr-current' : ''}`} aria-current={currentStep === 3 ? 'step' : undefined}>
+              <div className="cr-step-number">{currentStep > 3 ? <i className="bi bi-check-lg"></i> : 3}</div>
+              <div className="cr-step-label">KYC Details</div>
+            </div>
+            <div className={`cr-step-line ${currentStep >= 4 ? 'cr-active' : ''}`}></div>
+            <div className={`cr-step ${currentStep >= 4 ? 'cr-active' : ''} ${currentStep === 4 ? 'cr-current' : ''}`} aria-current={currentStep === 4 ? 'step' : undefined}>
+              <div className="cr-step-number">{currentStep > 4 ? <i className="bi bi-check-lg"></i> : 4}</div>
+              <div className="cr-step-label">Nominee</div>
+            </div>
           </div>
+
+          <p className="cr-step-caption">
+            Step {currentStep} of 4: {['Personal Info', 'Address', 'KYC Details', 'Nominee'][currentStep - 1]}
+          </p>
+
+          <form onSubmit={(e) => e.preventDefault()}>
+            {/* Step 1: Personal Information */}
+            {currentStep === 1 && (
+              <div className="cr-step-content">
+                <h3 className="cr-step-title">Personal Information</h3>
+                
+                <div className="cr-form-group">
+                  <label>Account Name <span className="cr-required">*</span></label>
+                  <input type="text" name="account_name" className="cr-control" placeholder="Enter account name" value={formData.account_name} onChange={handleInputChange} required />
+                </div>
+
+                <div className="cr-form-group">
+                  <label>Print Name</label>
+                  <input type="text" name="print_name" className="cr-control" placeholder="Enter print name" value={formData.print_name} onChange={handleInputChange} />
+                </div>
+
+                <div className="cr-form-row">
+                  <div className="cr-form-group">
+                    <label>Email Address <span className="cr-required">*</span></label>
+                    <input type="email" name="email" className="cr-control" placeholder="Eg: abc@email.com" value={formData.email} onChange={handleInputChange} required />
+                  </div>
+                  <div className="cr-form-group">
+                    <label>Phone Number <span className="cr-required">*</span></label>
+                    <input type="text" name="phone" className="cr-control" placeholder="Eg: 0123456789" value={formData.phone} onChange={handleInputChange} required />
+                  </div>
+                </div>
+
+                <div className="cr-form-row">
+                  <div className="cr-form-group">
+                    <label>Mobile Number</label>
+                    <input type="text" name="mobile" className="cr-control" placeholder="Mobile number" value={formData.mobile} onChange={handleInputChange} />
+                  </div>
+                  <div className="cr-form-group">
+                    <label>Opening Balance</label>
+                    <input type="number" name="op_bal" className="cr-control" placeholder="Opening balance" value={formData.op_bal} onChange={handleInputChange} step="0.01" />
+                  </div>
+                </div>
+
+                <div className="cr-form-row">
+                  <div className="cr-form-group">
+                    <label>Account Group</label>
+                    <input type="text" name="account_group" className="cr-control" value={formData.account_group} onChange={handleInputChange} />
+                  </div>
+                  <div className="cr-form-group">
+                    <label>DR/CR</label>
+                    <select name="dr_cr" className="cr-control" value={formData.dr_cr} onChange={handleInputChange}>
+                      <option value="DR">DR</option>
+                      <option value="CR">CR</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="cr-form-group">
+                  <label>Password {!isEditMode && <span className="cr-required">*</span>}</label>
+                  <div className="cr-password-input-wrapper">
+                    <input type={showPassword ? "text" : "password"} name="password" className="cr-control" placeholder={isEditMode ? "Leave blank to keep current" : "Enter password"} value={formData.password} onChange={handleInputChange} required={!isEditMode} />
+                    <button type="button" className="cr-toggle-password" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(!showPassword)}>
+                      <i className={`bi bi-${showPassword ? 'eye-slash' : 'eye'}-fill`}></i>
+                    </button>
+                  </div>
+                  {!isEditMode && <small className="cr-form-text">Password must be at least 6 characters</small>}
+                </div>
+
+                <div className="cr-form-row">
+                  <div className="cr-form-group">
+                    <label>Customer Status</label>
+                    <select name="customer_status" className="cr-control" value={formData.customer_status} onChange={handleInputChange}>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+                  <div className="cr-form-group">
+                    <label>KYC Status</label>
+                    <select name="kyc_status" className="cr-control" value={formData.kyc_status} onChange={handleInputChange}>
+                      <option value="pending">Pending</option>
+                      <option value="verified">Verified</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="cr-form-group">
+                  <label>Join Date</label>
+                  <input type="date" name="join_date" className="cr-control" value={formData.join_date} onChange={handleInputChange} />
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Address Information */}
+            {currentStep === 2 && (
+              <div className="cr-step-content">
+                <h3 className="cr-step-title">Address Information</h3>
+
+                <div className="cr-form-group">
+                  <label>Address</label>
+                  <input type="text" name="address" className="cr-control" placeholder="Street address" value={formData.address} onChange={handleInputChange} />
+                </div>
+
+                <div className="cr-form-row">
+                  <div className="cr-form-group">
+                    <label>City</label>
+                    <input type="text" name="city" className="cr-control" placeholder="City" value={formData.city} onChange={handleInputChange} />
+                  </div>
+                  <div className="cr-form-group">
+                    <label>PIN Code</label>
+                    <input type="text" name="pin" className="cr-control" placeholder="6-digit PIN" value={formData.pin} onChange={handleInputChange} maxLength="6" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: KYC Details */}
+            {currentStep === 3 && (
+              <div className="cr-step-content">
+                <h3 className="cr-step-title">KYC Details</h3>
+
+                <div className="cr-form-row">
+                  <div className="cr-form-group">
+                    <label>Aadhaar Number</label>
+                    <input type="text" name="aadhaar_number" className="cr-control" placeholder="12-digit Aadhaar" value={formData.aadhaar_number} onChange={handleInputChange} maxLength="12" />
+                  </div>
+                  <div className="cr-form-group">
+                    <label>PAN Number</label>
+                    <input type="text" name="pan_number" className="cr-control" placeholder="PAN (e.g., ABCDE1234F)" value={formData.pan_number} onChange={handleInputChange} />
+                  </div>
+                </div>
+
+                <div className="cr-form-group">
+                  <label>Referral Person Name</label>
+                  <input type="text" name="referred_person_name" className="cr-control" placeholder="Who referred you?" value={formData.referred_person_name} onChange={handleInputChange} />
+                </div>
+
+                <div className="cr-form-group">
+                  <label>Remarks</label>
+                  <textarea name="remarks" className="cr-control" rows="3" placeholder="Any additional remarks" value={formData.remarks} onChange={handleInputChange}></textarea>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Nominee Details */}
+            {currentStep === 4 && (
+              <div className="cr-step-content">
+                <h3 className="cr-step-title">Nominee Information</h3>
+
+                <div className="cr-form-row">
+                  <div className="cr-form-group">
+                    <label>Nominee Name</label>
+                    <input type="text" name="nominee_name" className="cr-control" placeholder="Nominee full name" value={formData.nominee_name} onChange={handleInputChange} />
+                  </div>
+                  <div className="cr-form-group">
+                    <label>Relationship</label>
+                    <input type="text" name="relationship" className="cr-control" placeholder="e.g., Spouse, Son, Daughter" value={formData.relationship} onChange={handleInputChange} />
+                  </div>
+                </div>
+
+                <div className="cr-form-row">
+                  <div className="cr-form-group">
+                    <label>Nominee Email</label>
+                    <input type="email" name="nominee_email" className="cr-control" placeholder="Nominee email" value={formData.nominee_email} onChange={handleInputChange} />
+                  </div>
+                  <div className="cr-form-group">
+                    <label>Nominee Phone</label>
+                    <input type="text" name="nominee_phone_number" className="cr-control" placeholder="Nominee phone" value={formData.nominee_phone_number} onChange={handleInputChange} />
+                  </div>
+                </div>
+
+                <div className="cr-form-row">
+                  <div className="cr-form-group">
+                    <label>Nominee Aadhaar</label>
+                    <input type="text" name="nominee_aadhaar_number" className="cr-control" placeholder="12-digit Aadhaar" value={formData.nominee_aadhaar_number} onChange={handleInputChange} maxLength="12" />
+                  </div>
+                  <div className="cr-form-group">
+                    <label>Nominee PAN</label>
+                    <input type="text" name="nominee_pan_number" className="cr-control" placeholder="PAN number" value={formData.nominee_pan_number} onChange={handleInputChange} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Form Actions */}
+            <div className="cr-form-actions">
+              <button type="button" className="cr-btn-next" onClick={nextStep} disabled={loading}>
+                {loading ? (
+                  <><span className="spinner-border spinner-border-sm"></span> Processing...</>
+                ) : (
+                  currentStep === 4 ? (isEditMode ? 'Update Customer' : 'Create account') : 'Next'
+                )}
+              </button>
+              {currentStep > 1 && (
+                <button type="button" className="cr-btn-prev" onClick={prevStep}>
+                  <i className="bi bi-chevron-left"></i> Previous
+                </button>
+              )}
+              <button type="button" className="cr-btn-cancel" onClick={handleCancel}>
+                Cancel
+              </button>
+            </div>
+          </form>
+
+          {!isEditMode && (
+            <p className="cr-form-footer">
+              Already have an account? <Link to="/login">Login</Link>
+            </p>
+          )}
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './Homeproductdetails.css';
 import Navbar from '../Navbar/Navbar';
-import LoginNavbar from '../Navbar/LoginNavbar';
+import BottomNav from '../Navbar/Bottomnav';
 import Swal from 'sweetalert2';
 import Footer from '../Footer/Footer';
 import baseURL from '../URL/BaseURL';
@@ -21,34 +21,32 @@ const Homeproductdetails = () => {
       try {
         setLoading(true);
         const response = await fetch(`${baseURL}/api/opening-tags/${id}/`);
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
+
         if (data.status && data.data) {
           const item = data.data;
-          
-          // Transform API data to match your product structure
+
           const transformedProduct = {
             id: item.opentag_id,
             name: item.product_name || `${item.sub_category} ${item.prefix || ''}`.trim(),
             category: item.category || 'Jewellery',
             subCategory: item.sub_category || '',
             price: parseFloat(item.total_price) || 0,
-            originalPrice: null, // API doesn't have original price
+            originalPrice: null,
             image: item.image || getFallbackImage(item.category, item.sub_category),
-            rating: 4.0 + Math.random() * 0.9, // Generate random rating
+            rating: 4.0 + Math.random() * 0.9,
             reviews: Math.floor(Math.random() * 200) + 10,
-            isNew: item.status === 'Available' ? true : false,
+            isNew: item.status === 'Available',
             isGold: item.metal_type === 'GOLD',
             metal: item.metal_type || 'Gold',
             weight: item.gross_weight || '0g',
             description: `${item.sub_category} - ${item.design_master || ''}`,
             inStock: item.status === 'Available',
-            // Additional fields from API
             purity: item.purity,
             pcode: item.pcode_barcode,
             grossWeight: item.gross_weight,
@@ -60,7 +58,6 @@ const Homeproductdetails = () => {
             designMaster: item.design_master,
             rate: item.rate,
             totalPrice: item.total_price,
-            // Features from API data
             features: [
               `Purity: ${item.purity}%`,
               `Metal Type: ${item.metal_type}`,
@@ -74,7 +71,7 @@ const Homeproductdetails = () => {
               `Source: ${item.source || 'N/A'}`
             ]
           };
-          
+
           setProduct(transformedProduct);
           setSelectedImage(transformedProduct.image);
         } else {
@@ -83,7 +80,6 @@ const Homeproductdetails = () => {
       } catch (err) {
         console.error('Error fetching product details:', err);
         setError(err.message);
-        // Use fallback product if API fails
         const fallbackProduct = getFallbackProduct();
         setProduct(fallbackProduct);
         setSelectedImage(fallbackProduct.image);
@@ -93,9 +89,9 @@ const Homeproductdetails = () => {
     };
 
     fetchProductDetails();
+    // eslint-disable-next-line
   }, [id]);
 
-  // Fallback image function
   const getFallbackImage = (category, subCategory) => {
     const imageMap = {
       'GOLD JEWELLERY': 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600&h=600&fit=crop&crop=center',
@@ -106,25 +102,22 @@ const Homeproductdetails = () => {
     return imageMap[category] || imageMap[subCategory] || 'https://via.placeholder.com/600x600/FFD700/FFFFFF?text=Jewellery';
   };
 
-  // Fallback product if API fails
-  const getFallbackProduct = () => {
-    return {
-      id: parseInt(id),
-      name: 'Product Not Found',
-      category: 'Jewellery',
-      price: 0,
-      originalPrice: null,
-      image: 'https://via.placeholder.com/600x600/FFD700/FFFFFF?text=Product+Not+Found',
-      rating: 0,
-      reviews: 0,
-      isNew: false,
-      metal: 'N/A',
-      weight: '0g',
-      description: 'Product details could not be loaded from the server.',
-      inStock: false,
-      features: ['Product information unavailable']
-    };
-  };
+  const getFallbackProduct = () => ({
+    id: parseInt(id),
+    name: 'Product Not Found',
+    category: 'Jewellery',
+    price: 0,
+    originalPrice: null,
+    image: 'https://via.placeholder.com/600x600/FFD700/FFFFFF?text=Product+Not+Found',
+    rating: 0,
+    reviews: 0,
+    isNew: false,
+    metal: 'N/A',
+    weight: '0g',
+    description: 'Product details could not be loaded from the server.',
+    inStock: false,
+    features: ['Product information unavailable']
+  });
 
   const handleQuantityChange = (change) => {
     const newQuantity = quantity + change;
@@ -133,90 +126,44 @@ const Homeproductdetails = () => {
     }
   };
 
+  // Every protected action for a guest opens the Register / Login popup
+  const promptRegister = (action = 'continue') => {
+    Swal.fire({
+      title: '🔒 Register to Continue',
+      text: `Please register or login to ${action}.`,
+      icon: 'info',
+      showDenyButton: true,
+      showCancelButton: true,
+      confirmButtonText: 'Register',
+      denyButtonText: 'Login',
+      cancelButtonText: 'Not now',
+      confirmButtonColor: '#5b2189',
+      denyButtonColor: '#C9A84C',
+      cancelButtonColor: '#888',
+      background: '#1a1a1a',
+      color: '#ffffff',
+      backdrop: 'rgba(0,0,0,0.8)'
+    }).then((result) => {
+      if (result.isConfirmed) navigate('/customerregister');
+      else if (result.isDenied) navigate('/login');
+    });
+  };
+
   const addToCart = () => {
     if (!product) return;
-    
-    Swal.fire({
-      title: 'Please Login to Continue',
-      text: 'You need to login to your account for continuing the shopping',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Login Now',
-      cancelButtonText: 'Cancel',
-      backdrop: 'rgba(0,0,0,0.8)',
-      imageUrl: 'https://cdn-icons-png.flaticon.com/512/5087/5087579.png',
-      imageWidth: 80,
-      imageHeight: 80,
-      imageAlt: 'Login required',
-    }).then((result) => {
-      if (result.isConfirmed) {
-        // User clicked "Login Now"
-        navigate('/login');
-      } else {
-        // User clicked "Cancel" - proceed with add to cart
-        const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-        const existingItem = existingCart.find(item => item.id === product.id);
-        
-        if (existingItem) {
-          existingItem.quantity += quantity;
-        } else {
-          existingCart.push({ ...product, quantity: quantity });
-        }
-        
-        localStorage.setItem('cart', JSON.stringify(existingCart));
-        
-        Swal.fire({
-          icon: 'success',
-          title: 'Added to Cart!',
-          text: `${product.name} (${quantity} item${quantity > 1 ? 's' : ''}) added to your cart`,
-          timer: 2000,
-          showConfirmButton: false,
-        });
-      }
-    });
+    promptRegister('add items to your cart');
+  };
+
+  const addToWishlist = () => {
+    if (!product) return;
+    promptRegister('add items to your wishlist');
   };
 
   const handleBuyNow = () => {
     if (!product) return;
-    
-    Swal.fire({
-      title: 'Please Login to Continue',
-      text: 'You need to login to your account for continuing the shopping',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Login Now',
-      cancelButtonText: 'Cancel',
-      backdrop: 'rgba(0,0,0,0.8)',
-      imageUrl: 'https://cdn-icons-png.flaticon.com/512/5087/5087579.png',
-      imageWidth: 80,
-      imageHeight: 80,
-      imageAlt: 'Login required',
-    }).then((result) => {
-      if (result.isConfirmed) {
-        // User clicked "Login Now"
-        navigate('/login');
-      } else {
-        // User clicked "Cancel" - proceed with buy now
-        const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-        const existingItem = existingCart.find(item => item.id === product.id);
-        
-        if (existingItem) {
-          existingItem.quantity += quantity;
-        } else {
-          existingCart.push({ ...product, quantity: quantity });
-        }
-        
-        localStorage.setItem('cart', JSON.stringify(existingCart));
-        navigate('/checkout');
-      }
-    });
+    promptRegister('continue with your purchase');
   };
 
-  // Render star rating
   const renderStars = (rating) => {
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 >= 0.5;
@@ -234,8 +181,8 @@ const Homeproductdetails = () => {
   // Loading state
   if (loading) {
     return (
-      <div>
-        <LoginNavbar />
+      <div className="guest-detail">
+        <Navbar />
         <div className="product-detail-loading">
           <div className="loader"></div>
           <p>Loading product details...</p>
@@ -247,8 +194,8 @@ const Homeproductdetails = () => {
   // Error state
   if (error && !product) {
     return (
-      <div>
-        <LoginNavbar />
+      <div className="guest-detail">
+        <Navbar />
         <div className="error-container">
           <h2>😕 Oops! Something went wrong</h2>
           <p>{error}</p>
@@ -265,8 +212,8 @@ const Homeproductdetails = () => {
 
   if (!product) {
     return (
-      <div>
-        <LoginNavbar />
+      <div className="guest-detail">
+        <Navbar />
         <div className="product-detail-loading">
           <p>Product not found</p>
           <button onClick={() => navigate('/')} className="back-btn">
@@ -278,10 +225,9 @@ const Homeproductdetails = () => {
   }
 
   return (
-    <div>
-      <LoginNavbar />
+    <div className="guest-detail">
+      <Navbar />
       <div className="product-detail-page">
-        {/* Back Button */}
         <button className="back-button" onClick={() => navigate('/')}>
           ← Back to Products
         </button>
@@ -297,17 +243,13 @@ const Homeproductdetails = () => {
                   e.target.src = 'https://via.placeholder.com/600x600/FFD700/FFFFFF?text=Jewellery';
                 }}
               />
-              {product.isNew && (
-                <span className="badge-new">NEW</span>
-              )}
+              {product.isNew && <span className="badge-new">NEW</span>}
               {product.originalPrice && (
                 <span className="badge-discount">
                   {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
                 </span>
               )}
-              {product.inStock && (
-                <span className="badge-instock">In Stock</span>
-              )}
+              {product.inStock && <span className="badge-instock">In Stock</span>}
             </div>
             <div className="thumbnail-images">
               {[product.image, product.image, product.image].map((img, idx) => (
@@ -324,16 +266,12 @@ const Homeproductdetails = () => {
 
           {/* Product Info */}
           <div className="product-info-section">
-            <div className="product-category-tag">
-              {product.category}
-            </div>
+            <div className="product-category-tag">{product.category}</div>
 
             <h1 className="product-title">{product.name}</h1>
 
             {product.purity && (
-              <div className="product-purity">
-                💎 Purity: {product.purity}%
-              </div>
+              <div className="product-purity">💎 Purity: {product.purity}%</div>
             )}
 
             <div className="product-rating-section">
@@ -343,7 +281,7 @@ const Homeproductdetails = () => {
             </div>
 
             <div className="product-price-section">
-              <span className="current-price">₹{product.price.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+              <span className="current-price">₹{product.price.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
               {product.originalPrice && (
                 <span className="original-price">₹{product.originalPrice.toLocaleString()}</span>
               )}
@@ -421,15 +359,21 @@ const Homeproductdetails = () => {
             </div>
 
             <div className="product-actions">
-              <button 
-                className="add-to-cart-btn" 
+              <button
+                className="wishlist-action-btn"
+                onClick={addToWishlist}
+              >
+                🤍 Wishlist
+              </button>
+              <button
+                className="add-to-cart-btn"
                 onClick={addToCart}
                 disabled={!product.inStock}
               >
                 🛒 {product.inStock ? 'Add to Cart' : 'Out of Stock'}
               </button>
-              <button 
-                className="buy-now-btn" 
+              <button
+                className="buy-now-btn"
                 onClick={handleBuyNow}
                 disabled={!product.inStock}
               >
@@ -454,7 +398,9 @@ const Homeproductdetails = () => {
           </div>
         </div>
       </div>
-      <Footer/>
+
+      <Footer />
+      <BottomNav />
     </div>
   );
 };

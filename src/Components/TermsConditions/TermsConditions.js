@@ -56,6 +56,7 @@ const TermsConditions = () => {
           <div className="terms-section">
             <h2>4. Shipping and Delivery</h2>
             <ul>
+              <li>All orders are shipped via DCTC Courier</li>
               <li>Standard delivery takes 3-5 business days</li>
               <li>Free shipping on orders above ₹50,000</li>
               <li>All shipments are insured</li>
@@ -65,11 +66,17 @@ const TermsConditions = () => {
 
           <div className="terms-section">
             <h2>5. Return and Exchange Policy</h2>
+            <p className="terms-highlight">
+              <i className="bi bi-exclamation-circle-fill"></i>
+              <strong>All online orders are final. We do not accept returns, exchanges, 
+              or refunds on any online orders after delivery.</strong>
+            </p>
             <ul>
-              <li>14-day return policy on all products</li>
-              <li>Products must be unused and in original packaging</li>
-              <li>Exchange available within 30 days</li>
-              <li>Special orders are not eligible for return</li>
+              <li>No returns or refunds are accepted on delivered online orders</li>
+              <li>Please review product details carefully before placing an order</li>
+              <li>Contact us before purchase for any product-related queries</li>
+              <li>For in-store purchases, please contact us directly for assistance</li>
+              <li>Damaged or defective items must be reported within 48 hours of delivery</li>
             </ul>
           </div>
 
@@ -78,8 +85,6 @@ const TermsConditions = () => {
             <ul>
               <li>All gold products are BIS hallmarked</li>
               <li>Lifetime exchange on selected designs</li>
-              <li>Free cleaning and polishing for 1 year</li>
-              <li>Complimentary jewellery insurance for 6 months</li>
             </ul>
           </div>
 
@@ -106,7 +111,8 @@ const TermsConditions = () => {
             <h2>9. Governing Law</h2>
             <p>
               These terms are governed by and construed in accordance with the laws of India. 
-              Any disputes shall be subject to the exclusive jurisdiction of courts in Mumbai, India.
+              Any disputes shall be subject to the exclusive jurisdiction of courts in 
+              Karnataka, India.
             </p>
           </div>
 
@@ -114,8 +120,18 @@ const TermsConditions = () => {
             <h2>10. Contact Information</h2>
             <p>For any questions regarding these terms, please contact us at:</p>
             <div className="terms-contact">
-              <p><i className="bi bi-envelope"></i> legal@jewellerystore.com</p>
-              <p><i className="bi bi-telephone"></i> +91 98765 43210</p>
+              <p>
+                <i className="bi bi-envelope"></i> 
+                <a href="mailto:manikantajewellers99@gmail.com">manikantajewellers99@gmail.com</a>
+              </p>
+              <p>
+                <i className="bi bi-telephone"></i> 
+                <a href="tel:+919535403545">+91 9535403545</a>
+              </p>
+              <p>
+                <i className="bi bi-geo-alt"></i> 
+                Manikanta Jewellers, Near Chennakeshva Swamy Temple, Kote, Belur - 573115
+              </p>
             </div>
           </div>
         </div>

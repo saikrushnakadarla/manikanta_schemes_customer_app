@@ -16,6 +16,8 @@ const CartPage = () => {
   const [cartId, setCartId] = useState(null);
   const [removingItem, setRemovingItem] = useState(null);
   const [clearingCart, setClearingCart] = useState(false);
+  // UI only: remarks text box (mobile layout)
+  const [remarks, setRemarks] = useState('');
 
   // Get current logged-in customer ID from localStorage
   const getCustomerId = () => {
@@ -355,7 +357,8 @@ const CartPage = () => {
       discountAmount: discountAmount,
       total: total,
       cartId: cartId,
-      appliedPromo: appliedPromo
+      appliedPromo: appliedPromo,
+      remarks: remarks
     };
 
     // Navigate to checkout with cart data
@@ -410,7 +413,23 @@ const CartPage = () => {
       <div className="cart-page">
         {/* Header */}
         <div className="cart-header">
-          <h1>💎 Shopping Cart</h1>
+          {/* Back arrow (visible on mobile only) */}
+          <button
+            type="button"
+            className="cart-back-btn"
+            onClick={() => navigate(-1)}
+            aria-label="Go back"
+          >
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5" />
+              <path d="M12 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h1>
+            <span className="title-icon">💎 </span>
+            <span className="title-desktop">Shopping Cart</span>
+            <span className="title-mobile">Cart</span>
+          </h1>
           <span className="cart-item-count">{cartItems.length} items</span>
           {cartId && (
             <span className="cart-id">Cart #{cartId}</span>
@@ -426,7 +445,7 @@ const CartPage = () => {
         <div className="cart-content">
           {/* Cart Items Section */}
           <div className="cart-items-section">
-            {/* Mobile Summary Card */}
+            {/* Mobile Summary Card (hidden by CSS - summary is shown at the bottom on mobile) */}
             <div className="mobile-cart-summary">
               <div className="mobile-total">
                 <span>Total: ₹{total.toLocaleString()}</span>
@@ -467,7 +486,29 @@ const CartPage = () => {
                         aria-label="Remove item"
                         disabled={removingItem === item.id || clearingCart}
                       >
-                        {removingItem === item.id ? '⏳' : '✕'}
+                        {removingItem === item.id ? '⏳' : (
+                          <>
+                            <span className="icon-x">✕</span>
+                            <svg
+                              className="icon-trash"
+                              viewBox="0 0 24 24"
+                              width="22"
+                              height="22"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M3 6h18" />
+                              <path d="M8 6V4h8v2" />
+                              <path d="M6 6l1 14h10l1-14" />
+                              <path d="M10 10v6" />
+                              <path d="M14 10v6" />
+                            </svg>
+                          </>
+                        )}
                       </button>
                     </div>
                     
@@ -475,6 +516,14 @@ const CartPage = () => {
                       <span className="item-category">{item.category}</span>
                       <span className="item-metal">{item.metal}</span>
                       <span className="item-weight">⚖️ {item.weight}g</span>
+                    </div>
+
+                    {/* Mobile-only compact line: price + purity */}
+                    <div className="item-mobile-info">
+                      <span className="item-mobile-price">₹ {item.price.toLocaleString()}</span>
+                      {item.purity && (
+                        <span className="item-mobile-purity">{item.purity}</span>
+                      )}
                     </div>
                     
                     <div className="item-price-section">
@@ -507,14 +556,47 @@ const CartPage = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Mobile-only action buttons (UI only - attach your handlers when ready) */}
+                  <div className="item-actions">
+                    <button type="button" className="item-action-btn">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M12 21s-7-4.35-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.65-7 10-7 10z" />
+                      </svg>
+                      Move to wishlist
+                    </button>
+                    <button type="button" className="item-action-btn">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M4 20h4l10-10-4-4L4 16v4z" />
+                        <path d="M13 7l4 4" />
+                      </svg>
+                      Customize
+                    </button>
+                  </div>
                 </div>
               ))}
+            </div>
+
+            {/* Remarks (mobile only) */}
+            <div className="cart-remarks">
+              <label htmlFor="cart-remarks-input">Remarks</label>
+              <textarea
+                id="cart-remarks-input"
+                rows="4"
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+              />
             </div>
           </div>
 
           {/* Order Summary */}
           <div className="order-summary">
             <h2>Order Summary</h2>
+
+            <div className="summary-row summary-items-row">
+              <span>Total items</span>
+              <span>{cartItems.length}</span>
+            </div>
             
             <div className="summary-row">
               <span>Subtotal</span>
@@ -593,7 +675,12 @@ const CartPage = () => {
               onClick={handleProceedToCheckout}
               disabled={clearingCart}
             >
-              {clearingCart ? '⏳ Processing...' : 'Proceed to Checkout'}
+              {clearingCart ? '⏳ Processing...' : (
+                <>
+                  <span className="label-desktop">Proceed to Checkout</span>
+                  <span className="label-mobile">Continue</span>
+                </>
+              )}
             </button>
             
             <button 

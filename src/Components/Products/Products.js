@@ -1,14 +1,310 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import './Products.css';
 import Navbar from '../Navbar/Navbar';
 import Footer from '../Footer/Footer';
+import BottomNav from '../Navbar/Bottomnav';
 import baseURL from '../URL/BaseURL';
 
+// ---- Adjust these routes to match your app ----
+const ROUTES = {
+  rewards: '/rewards',
+  schemes: '/allschemes'
+};
+
+const MORE_OPTIONS = [
+  { id: 'inst', label: 'Installment Plan', icon: '🗓️', tone: 'green', route: ROUTES.schemes }
+];
+
+const PRODUCTS_PREVIEW_COUNT = 6;
+
+// ===== Rate Chart Component =====
+const RateChart = ({ carat, onClose }) => {
+  const [period, setPeriod] = useState('6M');
+  const [chartData, setChartData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [caratName, setCaratName] = useState('');
+
+  const periods = ['1W', '1M', '6M', '1Y', 'ALL'];
+
+  useEffect(() => {
+    fetchChartData(period);
+  }, [period, carat]);
+
+  const fetchChartData = async (selectedPeriod) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch(
+        `${baseURL}/api/rates/?period=${selectedPeriod}&carat=${carat}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.data && data.data.length > 0) {
+        setChartData(data.data);
+        setCaratName(data.carat_name || carat);
+      } else {
+        setChartData([]);
+      }
+    } catch (err) {
+      console.error('Error fetching chart data:', err);
+      setError(err.message);
+      setChartData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Format date as "21 September 2026"
+  const formatChartDate = (dateStr) => {
+    const d = new Date(dateStr + 'T00:00:00');
+    if (isNaN(d.getTime())) return dateStr;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = d.toLocaleString('en-US', { month: 'long' });
+    const year = d.getFullYear();
+    return `${day} ${month} ${year}`;
+  };
+
+  // Format price as "₹15123.00"
+  const formatPrice = (value) => {
+    return `₹${parseFloat(value).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}`;
+  };
+
+  // Format change as "+₹823.0" or "-₹200.0"
+  const formatChange = (value) => {
+    const num = parseFloat(value);
+    const sign = num >= 0 ? '+' : '';
+    return `${sign}₹${Math.abs(num).toFixed(1)}`;
+  };
+
+  // Prepare chart data for SVG path
+  const getChartPoints = () => {
+    if (chartData.length === 0) return { path: '', areaPath: '', min: 0, max: 0, yLabels: [] };
+
+    const rates = chartData.map(d => parseFloat(d.rate));
+    const minRate = Math.min(...rates);
+    const maxRate = Math.max(...rates);
+    const range = maxRate - minRate || 1;
+    const padding = range * 0.15;
+
+    const chartMin = Math.max(0, minRate - padding);
+    const chartMax = maxRate + padding;
+    const chartRange = chartMax - chartMin || 1;
+
+    const width = 100;
+    const height = 100;
+
+    const points = chartData.map((d, i) => {
+      const x = (i / (chartData.length - 1 || 1)) * width;
+      const y = height - ((parseFloat(d.rate) - chartMin) / chartRange) * height;
+      return { x, y, rate: parseFloat(d.rate), date: d.date };
+    });
+
+    // Create path for line
+    let path = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      path += ` L ${points[i].x} ${points[i].y}`;
+    }
+
+    // Create area path (fill under line)
+    const areaPath = `${path} L ${width} ${height} L 0 ${height} Z`;
+
+    // Y-axis labels (4 labels)
+    const yLabels = [];
+    for (let i = 0; i < 4; i++) {
+      const value = chartMax - (chartRange / 3) * i;
+      yLabels.push(Math.round(value));
+    }
+
+    return { path, areaPath, min: chartMin, max: chartMax, yLabels, points };
+  };
+
+  const chart = getChartPoints();
+
+  // Reverse for display (newest first)
+  const displayData = [...chartData].reverse();
+
+  return (
+    <div className="rate-chart-overlay" onClick={onClose}>
+      <div className="rate-chart-container" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="rate-chart-header">
+          <button className="rate-chart-back" onClick={onClose} aria-label="Go back">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+          </button>
+          <h2 className="rate-chart-title">
+            {caratName || `${carat} Rate Chart`}
+          </h2>
+        </div>
+
+        {/* Period Selector */}
+        <div className="rate-chart-periods">
+          {periods.map((p) => (
+            <button
+              key={p}
+              className={`rate-chart-period-btn ${period === p ? 'active' : ''}`}
+              onClick={() => setPeriod(p)}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+
+        {/* Chart Area */}
+        <div className="rate-chart-area">
+          {loading ? (
+            <div className="rate-chart-loading">
+              <div className="rate-chart-spinner"></div>
+              <p>Loading chart data...</p>
+            </div>
+          ) : error ? (
+            <div className="rate-chart-error">
+              <p>⚠️ {error}</p>
+            </div>
+          ) : chartData.length === 0 ? (
+            <div className="rate-chart-empty">
+              <p>No data available for this period</p>
+            </div>
+          ) : (
+            <div className="rate-chart-svg-wrapper">
+              {/* Y-axis labels */}
+              <div className="rate-chart-y-labels">
+                {chart.yLabels.map((label, i) => (
+                  <span key={i} className="rate-chart-y-label">
+                    {label.toLocaleString('en-IN')}
+                  </span>
+                ))}
+              </div>
+
+              {/* Chart SVG */}
+              <svg
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                className="rate-chart-svg"
+              >
+                {/* Grid lines */}
+                {[0, 33.33, 66.66, 100].map((y, i) => (
+                  <line
+                    key={i}
+                    x1="0"
+                    y1={y}
+                    x2="100"
+                    y2={y}
+                    stroke="#2a2a2a"
+                    strokeWidth="0.3"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                ))}
+                {[0, 25, 50, 75, 100].map((x, i) => (
+                  <line
+                    key={i}
+                    x1={x}
+                    y1="0"
+                    x2={x}
+                    y2="100"
+                    stroke="#2a2a2a"
+                    strokeWidth="0.3"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                ))}
+
+                {/* Area fill */}
+                <path
+                  d={chart.areaPath}
+                  fill="url(#rateChartGradient)"
+                  opacity="0.35"
+                />
+
+                {/* Line */}
+                <path
+                  d={chart.path}
+                  fill="none"
+                  stroke="#4CAF50"
+                  strokeWidth="0.8"
+                  vectorEffect="non-scaling-stroke"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+
+                {/* Gradient definition */}
+                <defs>
+                  <linearGradient id="rateChartGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#4CAF50" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="#4CAF50" stopOpacity="0.05" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+          )}
+        </div>
+
+        {/* Rate History List */}
+        {!loading && !error && displayData.length > 0 && (
+          <div className="rate-chart-history">
+            {displayData.map((item, index) => {
+              const changeNum = parseFloat(item.change) || 0;
+              const changeType = item.change_type || 'no_change';
+              const isIncrease = changeType === 'increase' || changeNum > 0;
+              const isDecrease = changeType === 'decrease' || changeNum < 0;
+              const isNoChange = changeType === 'no_change' || changeNum === 0;
+
+              return (
+                <div key={item.rates_id || index} className="rate-chart-history-item">
+                  <div className="rate-chart-history-row">
+                    <div className="rate-chart-history-left">
+                      <span className={`rate-chart-arrow ${isIncrease ? 'up' : isDecrease ? 'down' : 'flat'}`}>
+                        {isIncrease ? '▲' : isDecrease ? '▼' : '●'}
+                      </span>
+                      <span className="rate-chart-history-date">
+                        {formatChartDate(item.date)}
+                      </span>
+                    </div>
+                    <div className="rate-chart-history-right">
+                      <span className="rate-chart-history-price">
+                        {formatPrice(item.rate)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="rate-chart-history-row sub">
+                    <span className="rate-chart-history-change-label">
+                      {isIncrease ? 'Price increased by' : isDecrease ? 'Price decreased by' : 'No Price Change'}
+                    </span>
+                    <span className={`rate-chart-history-change-value ${isIncrease ? 'up' : isDecrease ? 'down' : 'flat'}`}>
+                      {isNoChange ? '₹0' : formatChange(item.change)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ===== Main Products Component =====
 const Products = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchInputRef = useRef(null);
+  const productsSectionRef = useRef(null);
+
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedSubCategory, setSelectedSubCategory] = useState('All');
   const [sortBy, setSortBy] = useState('popular');
   const [showFilter, setShowFilter] = useState(false);
   const [products, setProducts] = useState([]);
@@ -24,6 +320,12 @@ const Products = () => {
   const [ratesData, setRatesData] = useState([]);
   const [ratesLoading, setRatesLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [showAllProducts, setShowAllProducts] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+
+  // Rate chart state
+  const [showRateChart, setShowRateChart] = useState(false);
+  const [selectedRateCarat, setSelectedRateCarat] = useState(null);
 
   // Get current logged-in customer ID from localStorage or context
   const getCustomerId = () => {
@@ -49,60 +351,59 @@ const Products = () => {
     return 52;
   };
 
+  // Reward points from the logged-in user (falls back to 0)
+  const getRewardPoints = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const pts = user.reward_points ?? user.rewardPoints ?? user.points ?? 0;
+      return Number(pts) || 0;
+    } catch (e) {
+      return 0;
+    }
+  };
+
+  // Format "03 September, 06:01 pm"
+  const formatUpdated = (value) => {
+    const d = value ? new Date(value) : new Date();
+    const date = isNaN(d.getTime()) ? new Date() : d;
+    const day = date.toLocaleString('en-GB', { day: '2-digit' });
+    const month = date.toLocaleString('en-GB', { month: 'long' });
+    const time = date
+      .toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+      .toLowerCase();
+    return `${day} ${month}, ${time}`;
+  };
+
   // Fetch rates from API
   const fetchRates = async () => {
     try {
       setRatesLoading(true);
       const response = await fetch(`${baseURL}/api/current-rates/`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
-      // Transform the API data into the format expected by the rates ticker
+
       if (data) {
-        // Handle both array and single object response
         let rateData = Array.isArray(data) ? data[0] : data;
-        
-        // If there's no data or invalid structure, throw error
+
         if (!rateData || !rateData.current_rates_id) {
           throw new Error('Invalid rate data received');
         }
-        
-        // Transform to rates display format
+
+        const fmt = (v) =>
+          `₹${parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const updated = formatUpdated(rateData.updated_at || rateData.created_at || rateData.date);
+
         const transformedRates = [
-          {
-            id: 1,
-            metal: 'Gold 24K',
-            rate: `₹${parseFloat(rateData.rate_24crt || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            purity: '24 Carat',
-            color: '#FFD700'
-          },
-          {
-            id: 2,
-            metal: 'Gold 22K',
-            rate: `₹${parseFloat(rateData.rate_22crt || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            purity: '22 Carat',
-            color: '#FFC107'
-          },
-          {
-            id: 3,
-            metal: 'Gold 18K',
-            rate: `₹${parseFloat(rateData.rate_18crt || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            purity: '18 Carat',
-            color: '#FFB300'
-          },
-          {
-            id: 4,
-            metal: 'Silver',
-            rate: `₹${parseFloat(rateData.silver_rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            purity: '999 Fine',
-            color: '#C0C0C0'
-          }
+          { id: 1, metal: 'Gold', rate: fmt(rateData.rate_24crt), purity: '24K (999)', tone: 'blue', icon: '🪙', gst: '', updated, carat: '24K', caratName: '24K (999)' },
+          { id: 2, metal: 'Gold', rate: fmt(rateData.rate_22crt), purity: '22K (916)', tone: 'pink', icon: '🪙', gst: '', updated, carat: '22K', caratName: '22K (916)' },
+          { id: 3, metal: 'Gold', rate: fmt(rateData.rate_18crt), purity: '18K (750)', tone: 'green', icon: '🪙', gst: '+3% GST', updated, carat: '18K', caratName: '18K (750)' },
+          { id: 4, metal: 'Silver', rate: fmt(rateData.silver_rate), purity: '999 Fine', tone: 'yellow', icon: '🥈', gst: '+3% GST', updated, carat: 'Silver', caratName: 'Silver (999 Fine)' }
         ];
-        
+
         setRatesData(transformedRates);
         setLastUpdated(new Date().toLocaleString());
       } else {
@@ -111,7 +412,6 @@ const Products = () => {
     } catch (err) {
       console.error('Error fetching rates:', err);
       setError('Failed to load rates');
-      // Set empty rates array
       setRatesData([]);
     } finally {
       setRatesLoading(false);
@@ -121,47 +421,36 @@ const Products = () => {
   // Initial fetch and auto-refresh rates
   useEffect(() => {
     fetchRates();
-    
-    // Refresh rates every 5 minutes
     const interval = setInterval(fetchRates, 300000);
-    
     return () => {
       clearInterval(interval);
     };
   }, []);
 
-  // Add these banner data and schemes data inside your Products component
+  // Banner data
   const banners = [
     {
       id: 2,
-      image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=1200&h=500&fit=crop&crop=center',
+      image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=1200&h=800&fit=crop&crop=center',
       title: 'Latest Diamond Collection',
       subtitle: 'LATEST DIAMOND COLLECTION',
       overlay: 'DIAMOND COLLECTION'
     },
     {
       id: 3,
-      image: 'https://images.unsplash.com/photo-1588444837495-c6cfeb53f32d?w=1200&h=500&fit=crop&crop=center',
+      image: 'https://images.unsplash.com/photo-1588444837495-c6cfeb53f32d?w=1200&h=800&fit=crop&crop=center',
       title: 'Gold Jewellery',
       subtitle: 'GOLD JEWELLERY',
       overlay: 'GOLD JEWELLERY'
     },
     {
       id: 4,
-      image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=1200&h=500&fit=crop&crop=center',
+      image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=1200&h=800&fit=crop&crop=center',
       title: 'Special Offer on Gemstones',
       subtitle: 'SPECIAL OFFER ON GEMSTONES',
       overlay: 'GEMSTONES'
     }
   ];
-
-  // Schemes card data
-  const schemes = {
-    title: '🎯 EXCLUSIVE SCHEMES',
-    subtitle: 'Discover our special jewellery schemes with amazing benefits',
-    image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=1200&h=400&fit=crop&crop=center',
-    cta: 'View Schemes →'
-  };
 
   // Fetch wishlist items from API
   const fetchWishlistItems = async () => {
@@ -191,9 +480,7 @@ const Products = () => {
       const wishlistMap = {};
       const wishlistIdMap = {};
 
-      // Check if response is an array
       if (Array.isArray(data)) {
-        // Filter items based on customer ID
         const customerWishlistItems = data.filter(item => item.customer === currentCustomerId);
         console.log('Customer wishlist items:', customerWishlistItems);
 
@@ -206,7 +493,6 @@ const Products = () => {
           }
         });
       }
-      // If response has data property (nested)
       else if (data && data.data && Array.isArray(data.data)) {
         const customerWishlistItems = data.data.filter(item => item.customer === currentCustomerId);
         console.log('Customer wishlist items (nested):', customerWishlistItems);
@@ -321,7 +607,6 @@ const Products = () => {
         const productsData = await productsResponse.json();
 
         if (productsData.status && productsData.data) {
-          // Filter products where is_display is 1 (true) - only display products that should be shown
           const displayableProducts = productsData.data.filter(item => item.is_display === 1);
 
           const transformedProducts = displayableProducts.map((item, index) => ({
@@ -354,7 +639,6 @@ const Products = () => {
 
           setProducts(transformedProducts);
 
-          // Fetch cart items and wishlist items in parallel
           const [cartMap, wishlistMap] = await Promise.all([
             fetchCartItems(),
             fetchWishlistItems()
@@ -384,7 +668,6 @@ const Products = () => {
 
     fetchProducts();
   }, []);
-
 
   // Auto-scroll banners
   useEffect(() => {
@@ -645,7 +928,6 @@ const Products = () => {
   const addToWishlist = async (e, product) => {
     e.stopPropagation();
 
-    // If already in wishlist, remove it
     if (wishlistItems[product.id]) {
       await removeFromWishlist(e, product);
       return;
@@ -698,11 +980,9 @@ const Products = () => {
       }
 
       if (responseData.status === 'success' || responseData.message || responseData.id) {
-        // Get the wishlist ID from the response
         const wishlistId = responseData.wishlist_id || responseData.id;
         console.log('Wishlist ID from response:', wishlistId);
 
-        // Update wishlist state
         setWishlistItems(prev => ({ ...prev, [product.id]: true }));
         setWishlistItemIds(prev => ({ ...prev, [product.id]: wishlistId }));
 
@@ -733,10 +1013,8 @@ const Products = () => {
         return;
       }
 
-      // Get the wishlist ID from state or fetch it
       let wishlistId = wishlistItemIds[product.id];
 
-      // If not in state, fetch it from API
       if (!wishlistId) {
         console.log('Wishlist ID not in state, fetching from API...');
         const response = await fetch(`${baseURL}/api/wishlist/`, {
@@ -761,7 +1039,6 @@ const Products = () => {
           items = data.data;
         }
 
-        // Find the wishlist item for this product and customer
         const wishlistItem = items.find(item =>
           item.product === product.id &&
           item.customer === currentCustomerId
@@ -779,7 +1056,6 @@ const Products = () => {
 
       console.log(`Deleting wishlist item with ID: ${wishlistId}`);
 
-      // Delete the wishlist item using the DELETE API
       const deleteResponse = await fetch(`${baseURL}/api/wishlist/${wishlistId}/`, {
         method: 'DELETE',
         headers: {
@@ -792,7 +1068,6 @@ const Products = () => {
         throw new Error(`HTTP error! status: ${deleteResponse.status}`);
       }
 
-      // Update wishlist state
       setWishlistItems(prev => {
         const newState = { ...prev };
         delete newState[product.id];
@@ -817,10 +1092,34 @@ const Products = () => {
   // Categories for filter
   const categories = ['All', ...new Set(products.map(p => p.category))];
 
-  // Filter products based on selected category
-  const filteredProducts = selectedCategory === 'All'
-    ? products
-    : products.filter(product => product.category === selectedCategory);
+  // Sub categories (with a representative image) for the category tiles
+  const subCategoryTiles = (() => {
+    const map = new Map();
+    products.forEach(p => {
+      const key = p.subCategory || p.category;
+      if (key && !map.has(key)) {
+        map.set(key, { name: key, category: p.category, image: p.image });
+      }
+    });
+    return Array.from(map.values());
+  })();
+
+  // Sub categories available under the selected category (for the "More" sheet)
+  const visibleSubCategories = subCategoryTiles.filter(
+    s => selectedCategory === 'All' || s.category === selectedCategory
+  );
+
+  // Filter products by category, sub category and search
+  const filteredProducts = products.filter(product => {
+    if (selectedCategory !== 'All' && product.category !== selectedCategory) return false;
+    if (selectedSubCategory !== 'All' && (product.subCategory || product.category) !== selectedSubCategory) return false;
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      const haystack = `${product.name} ${product.category} ${product.subCategory}`.toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
 
   // Sort products
   const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -830,28 +1129,161 @@ const Products = () => {
     return 0;
   });
 
+  const isFiltering =
+    selectedCategory !== 'All' || selectedSubCategory !== 'All' || searchQuery.trim() !== '';
+
+  const displayedProducts =
+    showAllProducts || isFiltering ? sortedProducts : sortedProducts.slice(0, PRODUCTS_PREVIEW_COUNT);
+
+  // Top trending = highest rated products
+  const trendingProducts = [...products].sort((a, b) => b.rating - a.rating).slice(0, 4);
+
   // Navigate to product detail
   const handleProductClick = (productId) => {
     navigate(`/product/${productId}`);
   };
 
-  // Render star rating
-  const renderStars = (rating) => {
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
-    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+  const scrollToProducts = () => {
+    if (productsSectionRef.current) {
+      productsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleSelectSubCategory = (sub) => {
+    setSelectedSubCategory(sub.name);
+    setSelectedCategory(sub.category);
+    setShowFilter(false);
+    setTimeout(scrollToProducts, 50);
+  };
+
+  const handleSelectCategory = (category) => {
+    setSelectedCategory(category);
+    setSelectedSubCategory('All');
+  };
+
+  const clearFilters = () => {
+    setSelectedCategory('All');
+    setSelectedSubCategory('All');
+    setSearchQuery('');
+    setShowSearch(false);
+  };
+
+  // Handle rate card click
+  const handleRateCardClick = (rate) => {
+    setSelectedRateCarat(rate.carat);
+    setShowRateChart(true);
+  };
+
+  // Apply filters coming from the sidebar / bottom nav (?category=..&sub=..&search=1)
+  useEffect(() => {
+    if (loading) return;
+    const params = new URLSearchParams(location.search);
+    const cat = params.get('category');
+    const sub = params.get('sub');
+    const wantsSearch = params.get('search');
+
+    if (cat || sub) {
+      setSelectedCategory(cat || 'All');
+      setSelectedSubCategory(sub || 'All');
+      setShowAllProducts(false);
+      setShowSearch(false);
+      setSearchQuery('');
+      setTimeout(scrollToProducts, 150);
+    } else if (wantsSearch) {
+      setShowSearch(true);
+      setTimeout(() => {
+        scrollToProducts();
+        if (searchInputRef.current) searchInputRef.current.focus();
+      }, 250);
+    }
+  }, [location.key, location.search, loading]);
+
+  // Product info line like the app: "76.000 Grams - 22K (916)" or price
+  const renderProductInfo = (product) => {
+    const weightNum = parseFloat(product.grossWeight);
+    if (product.grossWeight && !isNaN(weightNum) && weightNum > 0) {
+      return (
+        <p className="pc-info">
+          {product.grossWeight} Grams{product.purity ? ` - ${product.purity}` : ''}
+        </p>
+      );
+    }
+    return (
+      <p className="pc-info">
+        ₹ {product.price.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+        {product.originalPrice && (
+          <span className="pc-original">₹{product.originalPrice.toLocaleString()}</span>
+        )}
+      </p>
+    );
+  };
+
+  // Reusable product card
+  const renderProductCard = (product, keyPrefix = '') => {
+    const isAdded = addedToCart[product.id] || false;
+    const isInWishlist = wishlistItems[product.id] || false;
+    const isAddingToWishlist = addingToWishlist[product.id] || false;
 
     return (
-      <>
-        {'★'.repeat(fullStars)}
-        {hasHalfStar && '★'}
-        {'☆'.repeat(emptyStars)}
-      </>
+      <div
+        key={`${keyPrefix}${product.id}`}
+        className="product-card"
+        onClick={() => handleProductClick(product.id)}
+      >
+        <div className="product-image-wrapper">
+          <img
+            src={product.image}
+            alt={product.name}
+            className="product-image"
+            loading="lazy"
+            onError={(e) => {
+              e.target.src = 'https://via.placeholder.com/400x400/FFD700/FFFFFF?text=Jewellery';
+            }}
+          />
+        </div>
+
+        <div className="product-details">
+          <div className="pc-text">
+            <h3 className="product-name">{product.name || product.subCategory}</h3>
+            {renderProductInfo(product)}
+          </div>
+
+          <div className="pc-actions">
+            <button
+              className={`wishlist-btn ${isInWishlist ? 'active' : ''} ${isAddingToWishlist ? 'loading' : ''}`}
+              onClick={(e) => addToWishlist(e, product)}
+              disabled={isAddingToWishlist}
+              aria-label={isInWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+            >
+              {isAddingToWishlist ? (
+                <span className="wishlist-spinner">⏳</span>
+              ) : (
+                <span className="wishlist-icon">{isInWishlist ? '❤️' : '🤍'}</span>
+              )}
+            </button>
+
+            <button
+              className={`add-to-cart-btn ${isAdded ? 'added' : ''} ${addingToCart[product.id] ? 'loading' : ''}`}
+              onClick={(e) => addToCart(e, product)}
+              disabled={!product.inStock || addingToCart[product.id] || isAdded}
+              aria-label={isAdded ? 'Added to cart' : 'Add to cart'}
+            >
+              {addingToCart[product.id] ? (
+                <span>⏳</span>
+              ) : isAdded ? (
+                <span>✓</span>
+              ) : (
+                <span>🛒</span>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
     );
   };
 
   // Loading state
-  if (loading || ratesLoading) {
+  if (loading || (ratesLoading && ratesData.length === 0)) {
     return (
       <div>
         <Navbar />
@@ -879,73 +1311,113 @@ const Products = () => {
     );
   }
 
+  const tilesToShow = subCategoryTiles.slice(0, 3);
+
   return (
     <div>
       <Navbar />
       <div className="products-page">
 
-        {/* Search Bar */}
-        <div className="search-bar-container">
-          <div className="search-bar-wrapper">
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search for Jewellery..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <button className="search-button">
-              <span>🔍</span>
+        {/* Small reward banner */}
+        <button className="reward-banner" onClick={() => navigate(ROUTES.rewards)}>
+          <span className="reward-gift-box">🎁</span>
+          <span className="reward-text">
+            <span className="reward-label">Total Reward Points</span>
+            <span className="reward-points">{getRewardPoints()} Points</span>
+          </span>
+          <span className="reward-art" aria-hidden="true">🎁</span>
+          <span className="reward-arrow">›</span>
+        </button>
+
+        {/* 2. Categories / sub categories */}
+        <section className="category-tiles">
+          {tilesToShow.map(sub => (
+            <button
+              key={sub.name}
+              className={`category-tile ${selectedSubCategory === sub.name ? 'active' : ''}`}
+              onClick={() => handleSelectSubCategory(sub)}
+            >
+              <span className="category-tile-img">
+                <img
+                  src={sub.image}
+                  alt={sub.name}
+                  onError={(e) => {
+                    e.target.src = 'https://via.placeholder.com/200x200/FFD700/FFFFFF?text=Jewellery';
+                  }}
+                />
+              </span>
+              <span className="category-tile-label">{sub.name}</span>
             </button>
-          </div>
-        </div>
+          ))}
+          <button
+            className="category-tile"
+            onClick={() => setShowFilter(true)}
+            aria-label="More categories"
+          >
+            <span className="category-tile-img more">
+              <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="#fff" strokeWidth="1.8">
+                <rect x="3" y="3" width="7.5" height="7.5" rx="1.8" />
+                <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.8" />
+                <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.8" />
+                <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.8" />
+              </svg>
+            </span>
+            <span className="category-tile-label">More</span>
+          </button>
+        </section>
 
-        {/* Gold & Silver Rates Ticker */}
-        {ratesData.length > 0 ? (
-          <div className="rates-ticker-product">
-            <div className="rates-ticker-product-container">
-              <div className="rates-ticker-product-content">
-                {ratesData.map((rate, index) => (
-                  <div key={rate.id} className="rate-item">
-                    <span className="rate-metal" style={{ color: rate.color }}>
-                      {rate.metal}
-                    </span>
-                    <span className="rate-purity">({rate.purity})</span>
-                    <span className="rate-value">{rate.rate}</span>
-                    {index < ratesData.length - 1 && (
-                      <span className="rate-divider">|</span>
-                    )}
+        {/* 3. Metal rates */}
+        <section className="section-block">
+          <h2 className="section-title">Metal Rates</h2>
+          {ratesData.length > 0 ? (
+            <div className="rates-scroll">
+              {ratesData.map(rate => (
+                <div
+                  key={rate.id}
+                  className={`rate-card tone-${rate.tone}`}
+                  onClick={() => handleRateCardClick(rate)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div className="rate-card-top">
+                    <span className="rate-icon">{rate.icon}</span>
+                    <div className="rate-names">
+                      <span className="rate-metal">{rate.metal}</span>
+                      <span className="rate-purity">{rate.purity}</span>
+                    </div>
                   </div>
-                ))}
-                {/* Duplicate for seamless scrolling */}
-                {ratesData.map((rate, index) => (
-                  <div key={`dup-${rate.id}`} className="rate-item">
-                    <span className="rate-metal" style={{ color: rate.color }}>
-                      {rate.metal}
-                    </span>
-                    <span className="rate-purity">({rate.purity})</span>
-                    <span className="rate-value">{rate.rate}</span>
-                    {index < ratesData.length - 1 && (
-                      <span className="rate-divider">|</span>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  <div className="rate-value">{rate.rate}</div>
+                  <div className="rate-gst">{rate.gst}</div>
+                  <div className="rate-updated">Updated: {rate.updated}</div>
+                </div>
+              ))}
             </div>
-            {lastUpdated && (
-              <div className="rates-last-updated">
-                {/* <span>🔹 Last updated: {lastUpdated}</span> */}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="rates-error">
-            <span>⚠️ Unable to load current rates. Please try again later.</span>
-          </div>
-        )}
+          ) : (
+            <div className="rates-error">
+              <span>⚠️ Unable to load current rates. Please try again later.</span>
+            </div>
+          )}
+          {lastUpdated && <span className="visually-hidden">Rates refreshed {lastUpdated}</span>}
+        </section>
 
-        {/* Banner Slider */}
-        <div className="banner-slider-product">
+        {/* 4. More options (schemes = installment plan etc.) */}
+        <section className="section-block">
+          <h2 className="section-title">More Options</h2>
+          <div className="options-grid">
+            {MORE_OPTIONS.map(opt => (
+              <button
+                key={opt.id}
+                className={`option-card tone-${opt.tone}`}
+                onClick={() => navigate(opt.route)}
+              >
+                <span className="option-icon">{opt.icon}</span>
+                <span className="option-label">{opt.label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Banner (above products) */}
+        <section className="banner-slider-product">
           <div className="banner-wrapper">
             {banners.map((banner, index) => (
               <div
@@ -953,74 +1425,149 @@ const Products = () => {
                 className={`banner-slide ${index === currentBannerIndex ? 'active' : ''}`}
               >
                 <img src={banner.image} alt={banner.title} className="banner-image" />
-                <div className="banner-overlay">
-                  <h2>{banner.overlay}</h2>
-                  <p>{banner.subtitle}</p>
-                </div>
               </div>
             ))}
           </div>
-
-          {/* Banner Dots */}
-          <div className="banner-dots">
-            {banners.map((_, index) => (
-              <span
-                key={index}
-                className={`dot ${index === currentBannerIndex ? 'active' : ''}`}
-                onClick={() => setCurrentBannerIndex(index)}
-              />
-            ))}
+          <div className="banner-counter-row">
+            <span className="banner-counter">
+              {currentBannerIndex + 1}/{banners.length}
+            </span>
           </div>
-        </div>
+        </section>
 
-        {/* Schemes Card - Single card replacing gold/silver collections */}
-        <div className="schemes-section">
-          <div
-            className="schemes-card"
-            onClick={() => navigate('/allschemes')}
-          >
-            <img src={schemes.image} alt={schemes.title} className="schemes-image" />
-            <div className="schemes-overlay">
-              <h3>{schemes.title}</h3>
-              <p>{schemes.subtitle}</p>
-              <span className="schemes-cta">{schemes.cta}</span>
+        {/* 5. Products */}
+        <section className="section-block" ref={productsSectionRef}>
+          <div className="section-head">
+            <h2 className="section-title">All Products</h2>
+            <div className="head-actions">
+              <button
+                className="head-search-btn"
+                aria-label="Search products"
+                onClick={() => {
+                  setShowSearch(true);
+                  setTimeout(() => searchInputRef.current && searchInputRef.current.focus(), 100);
+                }}
+              >
+                🔍
+              </button>
+            <button
+              className="view-all"
+              onClick={() => {
+                if (isFiltering) {
+                  clearFilters();
+                } else {
+                  setShowAllProducts(prev => !prev);
+                }
+              }}
+            >
+              {isFiltering ? 'Clear ✕' : showAllProducts ? 'Show Less <' : 'View All >'}
+            </button>
             </div>
           </div>
-        </div>
-        {/* Header */}
-        <div className="products-header">
-          <h1>✨ Our Collection</h1>
-          <p>Discover exquisite jewellery pieces crafted with perfection</p>
-        </div>
 
-        {/* Filter and Sort Bar */}
-        <div className="filter-bar">
-          <div className="filter-section">
-            <button
-              className="filter-toggle"
-              onClick={() => setShowFilter(!showFilter)}
-            >
-              <span>☰</span> Categories
-            </button>
+          {/* Search (opened from the Search tab / search icon) */}
+          {showSearch && (
+            <div className="search-bar-wrapper">
+              <input
+                ref={searchInputRef}
+                type="text"
+                className="search-input"
+                placeholder="Search for Jewellery..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <button
+                className="search-button"
+                aria-label="Close search"
+                onClick={() => {
+                  setSearchQuery('');
+                  setShowSearch(false);
+                }}
+              >
+                <span>✕</span>
+              </button>
+            </div>
+          )}
 
-            <div className={`category-filters ${showFilter ? 'show' : ''}`}>
+          <div className="products-grid">
+            {displayedProducts.map(product => renderProductCard(product))}
+          </div>
+
+          {sortedProducts.length === 0 && (
+            <div className="empty-state">
+              <p>No products found</p>
+            </div>
+          )}
+        </section>
+
+        {/* Top trending */}
+        {trendingProducts.length > 0 && !isFiltering && (
+          <section className="section-block">
+            <div className="section-head">
+              <h2 className="section-title">Top Trending</h2>
+              <button
+                className="view-all"
+                onClick={() => {
+                  setSortBy('rating');
+                  setShowAllProducts(true);
+                  scrollToProducts();
+                }}
+              >
+                View All &gt;
+              </button>
+            </div>
+            <div className="products-grid">
+              {trendingProducts.map(product => renderProductCard(product, 'trend-'))}
+            </div>
+          </section>
+        )}
+      </div>
+
+      {/* Categories bottom sheet (opened by "More") */}
+      {showFilter && (
+        <div className="sheet-backdrop" onClick={() => setShowFilter(false)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="sheet-handle" />
+            <div className="sheet-head">
+              <h3>Categories</h3>
+              <button className="sheet-close" onClick={() => setShowFilter(false)} aria-label="Close">✕</button>
+            </div>
+
+            <div className="category-filters">
               {categories.map(category => (
                 <button
                   key={category}
                   className={`category-btn ${selectedCategory === category ? 'active' : ''}`}
-                  onClick={() => {
-                    setSelectedCategory(category);
-                    setShowFilter(false);
-                  }}
+                  onClick={() => handleSelectCategory(category)}
                 >
                   {category}
                 </button>
               ))}
             </div>
-          </div>
 
-          <div className="sort-section">
-            <label htmlFor="sort">Sort by:</label>
+            <h4 className="sheet-sub-title">Sub Categories</h4>
+            <div className="sheet-tiles">
+              {visibleSubCategories.map(sub => (
+                <button
+                  key={sub.name}
+                  className={`category-tile ${selectedSubCategory === sub.name ? 'active' : ''}`}
+                  onClick={() => handleSelectSubCategory(sub)}
+                >
+                  <span className="category-tile-img">
+                    <img
+                      src={sub.image}
+                      alt={sub.name}
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/200x200/FFD700/FFFFFF?text=Jewellery';
+                      }}
+                    />
+                  </span>
+                  <span className="category-tile-label">{sub.name}</span>
+                </button>
+              ))}
+            </div>
+
+            <h4 className="sheet-sub-title">Sort by</h4>
             <select
               id="sort"
               value={sortBy}
@@ -1032,119 +1579,35 @@ const Products = () => {
               <option value="price-high">Price: High to Low</option>
               <option value="rating">Highest Rated</option>
             </select>
-          </div>
-        </div>
 
-        {/* Results count */}
-        <div className="results-count">
-          Showing {sortedProducts.length} {sortedProducts.length === 1 ? 'product' : 'products'}
-        </div>
-
-        {/* Products Grid */}
-        <div className="products-grid">
-          {sortedProducts.map(product => {
-            const isAdded = addedToCart[product.id] || false;
-            const isInWishlist = wishlistItems[product.id] || false;
-            const isAddingToWishlist = addingToWishlist[product.id] || false;
-
-            return (
-              <div
-                key={product.id}
-                className="product-card"
-                onClick={() => handleProductClick(product.id)}
+            <div className="sheet-actions">
+              <button className="sheet-clear" onClick={clearFilters}>Clear all</button>
+              <button
+                className="sheet-apply"
+                onClick={() => {
+                  setShowFilter(false);
+                  setTimeout(scrollToProducts, 50);
+                }}
               >
-                {/* Product Image */}
-                <div className="product-image-wrapper">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="product-image"
-                    loading="lazy"
-                    onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/400x400/FFD700/FFFFFF?text=Jewellery';
-                    }}
-                  />
-                  {product.isNew && (
-                    <span className="badge-new">NEW</span>
-                  )}
-                  {product.originalPrice && (
-                    <span className="badge-discount">
-                      {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
-                    </span>
-                  )}
-                  {product.inStock && (
-                    <span className="badge-instock">In Stock</span>
-                  )}
-                  {isAdded && (
-                    <span className="badge-added">✓ Added</span>
-                  )}
-                </div>
-
-                {/* Product Details */}
-                <div className="product-details">
-                  <div className="product-meta">
-                    {/* <span className="product-category">{product.category}</span>
-                    <span className="product-metal">{product.metal}</span> */}
-                  </div>
-
-                  <h3 className="product-name">{product.name || product.subCategory}</h3>
-
-                  <div className="product-weight">
-                    ⚖️ Weight: {product.weight}
-                  </div>
-
-                  <div className="product-price-row">
-                    <div className="product-price">
-                      <span className="current-price">₹{product.price.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                      {product.originalPrice && (
-                        <span className="original-price">₹{product.originalPrice.toLocaleString()}</span>
-                      )}
-                    </div>
-
-                    <div className="product-actions-row">
-                      <button
-                        className={`add-to-cart-btn ${isAdded ? 'added' : ''} ${addingToCart[product.id] ? 'loading' : ''}`}
-                        onClick={(e) => addToCart(e, product)}
-                        disabled={!product.inStock || addingToCart[product.id] || isAdded}
-                        aria-label={isAdded ? 'Added to cart' : 'Add to cart'}
-                      >
-                        {addingToCart[product.id] ? (
-                          <span>⏳</span>
-                        ) : isAdded ? (
-                          <span>✓</span>
-                        ) : (
-                          <span>🛒</span>
-                        )}
-                      </button>
-
-                      <button
-                        className={`wishlist-btn ${isInWishlist ? 'active' : ''} ${isAddingToWishlist ? 'loading' : ''}`}
-                        onClick={(e) => addToWishlist(e, product)}
-                        disabled={isAddingToWishlist}
-                        aria-label={isInWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
-                      >
-                        {isAddingToWishlist ? (
-                          <span className="wishlist-spinner">⏳</span>
-                        ) : (
-                          <span className="wishlist-icon">{isInWishlist ? '❤️' : '🤍'}</span>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Empty State */}
-        {sortedProducts.length === 0 && (
-          <div className="empty-state">
-            <p>No products found in this category</p>
+                Show products
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Rate Chart Overlay */}
+      {showRateChart && (
+        <RateChart
+          carat={selectedRateCarat}
+          onClose={() => setShowRateChart(false)}
+        />
+      )}
+
       <Footer />
+
+      {/* Fixed bottom navigation: Home, Search, Chat, Profile */}
+      <BottomNav />
     </div>
   );
 };

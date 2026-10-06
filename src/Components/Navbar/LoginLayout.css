@@ -1,0 +1,143 @@
+/* Login screen – matches the app reference */
+.lg-page {
+  min-height: 100vh;
+  padding: 24px 18px 40px;
+  background: #fdf9ff;
+  box-sizing: border-box;
+}
+
+.lg-page *, .lg-page *::before, .lg-page *::after { box-sizing: border-box; }
+
+.lg-close {
+  display: block;
+  width: 44px;
+  height: 44px;
+  margin: 8px 0 34px 4px;
+  padding: 7px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.lg-card {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 36px 24px 34px;
+  border-radius: 28px;
+  background: #eef3fb;
+  text-align: center;
+}
+
+.lg-logo-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 78%;
+  min-height: 118px;
+  margin: 0 auto 38px;
+  padding: 14px;
+  border-radius: 26px;
+  background: #4f2480;
+}
+
+.lg-logo-chip {
+  flex: 0 0 auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 4px;
+  display: flex;
+}
+
+.lg-logo-chip img { height: 54px; width: auto; border-radius: 8px; display: block; }
+
+.lg-brand { display: flex; flex-direction: column; text-align: left; line-height: 1.1; }
+
+.lg-brand-name {
+  color: #fff;
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 1px;
+}
+
+.lg-brand-sub {
+  color: #e8d9f5;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+}
+
+.lg-title { margin: 0 0 8px; font-size: 1.15rem; font-weight: 600; color: #1c1521; }
+
+.lg-subtitle {
+  margin: 0 auto 38px;
+  max-width: 330px;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: #4a4352;
+  letter-spacing: 0.3px;
+}
+
+.lg-label {
+  display: block;
+  text-align: left;
+  margin: 0 0 10px 2px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #3a3340;
+}
+
+.lg-input {
+  width: 100%;
+  height: 60px;
+  padding: 0 18px;
+  border: 1.8px solid #4f2480;
+  border-radius: 16px;
+  background: #fff;
+  font-size: 1rem;
+  color: #26202b;
+  outline: none;
+}
+
+.lg-input::placeholder { color: #a39ba8; }
+.lg-input:focus { box-shadow: 0 0 0 3px rgba(79, 36, 128, 0.15); }
+
+.lg-error { margin: 8px 0 0 4px; text-align: left; color: #d32f2f; font-size: 0.85rem; }
+
+.lg-btn {
+  display: block;
+  width: 86%;
+  height: 62px;
+  margin: 42px auto 0;
+  border: none;
+  border-radius: 31px;
+  background: #4f2480;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+}
+
+.lg-btn:disabled { opacity: 0.65; cursor: wait; }
+
+.lg-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin: 46px 0 0;
+  font-size: 0.95rem;
+  color: #7a7282;
+}
+
+.lg-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #4f2480;
+  cursor: pointer;
+}

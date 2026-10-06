@@ -77,9 +77,9 @@ const ContactUs = () => {
                   </div>
                   <div>
                     <h4>Store Address</h4>
-                    <p>123, Jewellery Street,</p>
-                    <p>Diamond District,</p>
-                    <p>Mumbai - 400001, India</p>
+                    <p>Manikanta Jewellers,</p>
+                    <p>Near Chennakeshva Swamy Temple,</p>
+                    <p>Kote, Belur - 573115</p>
                   </div>
                 </div>
 
@@ -88,9 +88,8 @@ const ContactUs = () => {
                     <i className="bi bi-telephone-fill"></i>
                   </div>
                   <div>
-                    <h4>Phone Numbers</h4>
-                    <p><a href="tel:+919876543210">+91 98765 43210</a></p>
-                    <p><a href="tel:+911234567890">+91 12345 67890</a></p>
+                    <h4>Phone Number</h4>
+                    <p><a href="tel:+919535403545">+91 9535403545</a></p>
                   </div>
                 </div>
 
@@ -100,8 +99,7 @@ const ContactUs = () => {
                   </div>
                   <div>
                     <h4>Email Address</h4>
-                    <p><a href="mailto:info@jewellerystore.com">info@jewellerystore.com</a></p>
-                    <p><a href="mailto:support@jewellerystore.com">support@jewellerystore.com</a></p>
+                    <p><a href="mailto:manikantajewellers99@gmail.com">manikantajewellers99@gmail.com</a></p>
                   </div>
                 </div>
 

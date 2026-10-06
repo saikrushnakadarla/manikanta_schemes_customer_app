@@ -186,15 +186,14 @@ const Orders = () => {
     navigate(`/order/${orderId}`);
   };
 
-  // Format date
+  // Format date (e.g. 03 October 2026, 11:46 AM)
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      day: '2-digit', 
-      month: 'short', 
-      year: 'numeric' 
-    });
+    if (isNaN(date.getTime())) return 'N/A';
+    const day = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+    const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    return `${day}, ${time}`;
   };
 
   // Loading state
@@ -303,82 +302,85 @@ const Orders = () => {
               </button>
             </div>
           ) : (
-            filteredOrders.map((order) => (
-              <div 
-                key={order.id} 
-                className="order-card"
-                onClick={() => handleOrderClick(order.id)}
-              >
-                <div className="order-header">
-                  <div className="order-info-left">
-                    <span className="order-id">Order #{order.orderNumber || order.id}</span>
-                    <span className="order-date">📅 {formatDate(order.placedAt || order.date)}</span>
+            filteredOrders.map((order) => {
+              const firstItem = order.items && order.items.length > 0 ? order.items[0] : null;
+              const itemCount = order.items ? order.items.length : 0;
+              return (
+                <div
+                  key={order.id}
+                  className="order-card"
+                  onClick={() => handleOrderClick(order.id)}
+                >
+                  {/* Row 1: Order No + number */}
+                  <div className="oc-row">
+                    <span className="oc-label">Order No</span>
+                    <span className="oc-number">#{order.orderNumber || order.id}</span>
                   </div>
-                  <div className="order-status">
-                    <span 
-                      className="status-badge"
+
+                  {/* Row 2: Placed On + date */}
+                  <div className="oc-row oc-row-sub">
+                    <span className="oc-sub">Placed On</span>
+                    <span className="oc-sub oc-date">{formatDate(order.placedAt || order.date)}</span>
+                  </div>
+
+                  {/* Status badges */}
+                  <div className="oc-badges">
+                    <span
+                      className="oc-status"
                       style={{ backgroundColor: getStatusColor(order.status) }}
                     >
-                      {getStatusIcon(order.status)} {order.status}
+                      {order.status}
                     </span>
                     {order.paymentStatus && (
-                      <span className="payment-badge">
-                        💳 {order.paymentStatus}
+                      <span
+                        className={`oc-pay ${String(order.paymentStatus).toLowerCase() === 'paid' ? 'paid' : 'unpaid'}`}
+                      >
+                        {order.paymentStatus}
                       </span>
                     )}
                   </div>
-                </div>
 
-                <div className="order-items-preview">
-                  {order.items && order.items.length > 0 ? (
-                    order.items.slice(0, 3).map((item, index) => (
-                      <div key={index} className="order-item-preview">
-                        <img 
-                          src={item.image} 
-                          alt={item.name}
-                          onError={(e) => {
-                            e.target.src = 'https://via.placeholder.com/200x200/FFD700/FFFFFF?text=Jewellery';
+                  {/* Item preview */}
+                  <div className="oc-body">
+                    {firstItem ? (
+                      <img
+                        className="oc-img"
+                        src={firstItem.image}
+                        alt={firstItem.name}
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/200x200/FFD700/FFFFFF?text=Jewellery';
+                        }}
+                      />
+                    ) : (
+                      <div className="oc-img oc-img-empty" />
+                    )}
+                    <div className="oc-info">
+                      <span className="oc-name">
+                        {firstItem ? firstItem.name : 'No items found'}
+                        {itemCount > 1 && <span className="oc-more"> +{itemCount - 1} more</span>}
+                      </span>
+                      <span className="oc-qty">
+                        Quantity - {itemCount} {itemCount === 1 ? 'Item' : 'Items'}
+                      </span>
+                      <div className="oc-bottom">
+                        <span className="oc-total">
+                          ₹{order.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                        </span>
+                        <button
+                          className="view-details-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOrderClick(order.id);
                           }}
-                        />
-                        <div className="item-info">
-                          <span className="item-name">{item.name}</span>
-                          <span className="item-meta">{item.metal} • {item.weight}</span>
-                          <span className="item-qty">Qty: {item.quantity}</span>
-                          {item.purity && (
-                            <span className="item-purity">💎 {item.purity}%</span>
-                          )}
-                        </div>
+                        >
+                          View Details
+                        </button>
                       </div>
-                    ))
-                  ) : (
-                    <div className="no-items">No items found</div>
-                  )}
-                  {order.items && order.items.length > 3 && (
-                    <div className="more-items">
-                      +{order.items.length - 3} more items
                     </div>
-                  )}
-                </div>
-
-                <div className="order-footer">
-                  <div className="order-total">
-                    <span className="total-label">Total:</span>
-                    <span className="total-amount">₹{order.total.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
-                  </div>
-                  <div className="order-actions">
-                    <button 
-                      className="view-details-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOrderClick(order.id);
-                      }}
-                    >
-                      View Details →
-                    </button>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div> 

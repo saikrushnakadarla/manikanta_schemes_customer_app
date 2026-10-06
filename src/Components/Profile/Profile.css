@@ -1,0 +1,212 @@
+/* Profile page – matches the app reference */
+.profile-page {
+  max-width: 560px;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 24px 14px 24px;
+  background: #fdf9ff;
+  box-sizing: border-box;
+  color: #1f1a24;
+}
+
+.profile-page *,
+.profile-page *::before,
+.profile-page *::after { box-sizing: border-box; }
+
+.profile-page button {
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.profile-title {
+  margin: 8px 0 26px 4px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.profile-section {
+  margin: 26px 0 12px 2px;
+  font-size: 1.05rem;
+  font-weight: 500;
+  letter-spacing: 0.6px;
+  color: #5b2189;
+}
+
+.profile-card {
+  background: #fff;
+  border: 1.5px solid #f0e8f5;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(60, 20, 90, 0.07);
+}
+
+/* user card */
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 22px 18px 22px 16px;
+}
+
+.user-bar {
+  flex: 0 0 auto;
+  width: 4px;
+  height: 66px;
+  border-radius: 2px;
+  background: #5b2189;
+}
+
+.user-avatar {
+  flex: 0 0 auto;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  background: #f1e3fb;
+  color: #5b2189;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+
+.user-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-hi { font-size: 0.9rem; color: #6f6678; }
+
+.user-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.edit-btn {
+  flex: 0 0 auto;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 14px;
+  background: #4a1a78;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* security */
+.security-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 16px;
+}
+
+.security-icon {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #5e35b1;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+}
+
+.security-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.security-title { font-size: 0.95rem; font-weight: 600; letter-spacing: 0.3px; }
+.security-desc { font-size: 0.85rem; color: #7a7282; line-height: 1.35; }
+
+.switch {
+  flex: 0 0 auto;
+  position: relative;
+  width: 62px;
+  height: 36px;
+  border: none;
+  border-radius: 18px;
+  background: #ead9f5;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.switch-knob {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.switch.on { background: #5b2189; }
+.switch.on .switch-knob { transform: translateX(26px); }
+
+/* account list */
+.account-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.account-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.account-item:active { transform: scale(0.985); }
+
+.account-item:disabled { opacity: 0.6; cursor: wait; }
+
+.account-icon {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.account-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.account-title { font-size: 0.95rem; font-weight: 600; letter-spacing: 0.4px; color: #26202b; }
+.account-desc { font-size: 0.88rem; color: #7a7282; line-height: 1.3; }
+.account-arrow { flex: 0 0 auto; font-size: 1.1rem; color: #3a3340; }
+
+.logout-item .account-title { color: #dc3545; }
+
+@media (max-width: 380px) {
+  .edit-btn { padding: 10px 14px; font-size: 0.85rem; }
+  .user-avatar { width: 54px; height: 54px; font-size: 1.6rem; }
+}

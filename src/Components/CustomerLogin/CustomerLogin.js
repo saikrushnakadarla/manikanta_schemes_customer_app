@@ -132,131 +132,106 @@ const CustomerLogin = () => {
   };
 
   return (
-    <div className="login-container">
-      <div className="container">
-        <div className="row justify-content-center align-items-center min-vh-100">
-          <div className="col-11 col-sm-8 col-md-6 col-lg-5 col-xl-4">
-            <div className="company-logo-container mb-3">
-              <img
-                src={companyLogo}
-                alt="Company Logo"
-                className="company-logo"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.style.display = 'none';
-                  e.target.parentElement.innerHTML += '<i className="bi bi-building" style="font-size: 3rem;"></i>';
-                }}
-              />
-            </div>
-            <div className="card shadow-lg border-0 login-card">
-              <div className="card-body p-4 p-sm-5">
-                <div className="text-center mb-4">
-                  <h2 className="fw-bold mb-2">Customer Login</h2>
-                  <p className="text-muted">Please sign in to continue</p>
-                </div>
+    <div className="tl-page">
+      <button
+        type="button"
+        className="tl-close"
+        aria-label="Close"
+        onClick={() => navigate(-1)}
+      >
+        <i className="bi bi-x-lg"></i>
+      </button>
 
-                {apiError && (
-                  <div className="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i className="bi bi-exclamation-triangle-fill me-2"></i>
-                    {apiError}
-                    <button type="button" className="btn-close" onClick={() => setApiError('')}></button>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmit}>
-                  <div className="mb-3">
-                    <label htmlFor="identifier" className="form-label fw-semibold">
-                      Email or Username
-                    </label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light border-end-0">
-                        <i className="bi bi-person"></i>
-                      </span>
-                      <input
-                        type="text"
-                        className={`form-control border-start-0 ${errors.identifier ? 'is-invalid' : ''}`}
-                        id="identifier"
-                        name="identifier"
-                        placeholder="Enter your email or username"
-                        value={formData.identifier}
-                        onChange={handleChange}
-                        disabled={isLoading}
-                      />
-                    </div>
-                    {errors.identifier && (
-                      <div className="invalid-feedback d-block">{errors.identifier}</div>
-                    )}
-                  </div>
-
-                  <div className="mb-3">
-                    <label htmlFor="password" className="form-label fw-semibold">
-                      Password
-                    </label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light border-end-0">
-                        <i className="bi bi-lock"></i>
-                      </span>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        className={`form-control border-start-0 ${errors.password ? 'is-invalid' : ''}`}
-                        id="password"
-                        name="password"
-                        placeholder="Enter your password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        disabled={isLoading}
-                      />
-                      <span
-                        className="input-group-text bg-light border-start-0 password-toggle"
-                        onClick={togglePasswordVisibility}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <i className={`bi bi-${showPassword ? 'eye-slash' : 'eye'}`}></i>
-                      </span>
-                    </div>
-                    {errors.password && (
-                      <div className="invalid-feedback d-block">{errors.password}</div>
-                    )}
-                  </div>
-
-                  <div className="text-end mb-3">
-                    <a href="#" className="text-decoration-none small" onClick={(e) => e.preventDefault()}>
-                      Forgot Password?
-                    </a>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="btn btn-primary w-100 py-2 fw-semibold"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Signing in...
-                      </>
-                    ) : (
-                      'Sign In'
-                    )}
-                  </button>
-                </form>
-
-                <div className="text-center mt-4">
-                  <p className="text-muted mb-0">
-                    Don't have an account?{' '}
-                    <Link to="/customerregister" className="text-decoration-none fw-semibold">
-                      Sign up
-                    </Link>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <p className="text-center text-muted small mt-3">
-              &copy; 2024 Your Company. All rights reserved.
-            </p>
-          </div>
+      <div className="tl-card">
+        <div className="tl-logo">
+          <img
+            src={companyLogo}
+            alt="Company Logo"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.style.display = 'none';
+            }}
+          />
         </div>
+
+        <div className="tl-heading">
+          <h1>Sign in to continue</h1>
+          <p>Enter your email or username and password to access your account</p>
+        </div>
+
+        {apiError && (
+          <div className="tl-alert" role="alert">
+            <i className="bi bi-exclamation-triangle-fill"></i>
+            <span>{apiError}</span>
+            <button type="button" aria-label="Dismiss" onClick={() => setApiError('')}>
+              <i className="bi bi-x"></i>
+            </button>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="tl-field">
+            <label htmlFor="identifier">Email or Username</label>
+            <input
+              type="text"
+              className={`tl-input ${errors.identifier ? 'is-invalid' : ''}`}
+              id="identifier"
+              name="identifier"
+              placeholder="Enter your email or username"
+              value={formData.identifier}
+              onChange={handleChange}
+              disabled={isLoading}
+            />
+            {errors.identifier && <div className="tl-error">{errors.identifier}</div>}
+          </div>
+
+          <div className="tl-field">
+            <label htmlFor="password">Password</label>
+            <div className="tl-password">
+              <input
+                type={showPassword ? "text" : "password"}
+                className={`tl-input ${errors.password ? 'is-invalid' : ''}`}
+                id="password"
+                name="password"
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={handleChange}
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                className="tl-eye"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                onClick={togglePasswordVisibility}
+              >
+                <i className={`bi bi-${showPassword ? 'eye-slash' : 'eye'}`}></i>
+              </button>
+            </div>
+            {errors.password && <div className="tl-error">{errors.password}</div>}
+          </div>
+
+          <div className="tl-forgot">
+            <a href="#" onClick={(e) => e.preventDefault()}>
+              Forgot Password?
+            </a>
+          </div>
+
+          <button type="submit" className="tl-submit" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Signing in...
+              </>
+            ) : (
+              'Sign In'
+            )}
+          </button>
+        </form>
+
+        <p className="tl-signup">
+          No account?{' '}
+          <Link to="/customerregister">Create new account</Link>
+        </p>
       </div>
     </div>
   );

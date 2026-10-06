@@ -85,28 +85,22 @@ const Footer = () => {
               <div className="contact-item">
                 <i className="bi bi-geo-alt-fill"></i>
                 <div>
-                  <p>123, Jewellery Street,</p>
-                  <p>Diamond District,</p>
-                  <p>Bangalore - 400001, India</p>
+                  <p>Manikanta Jewellers,</p>
+                  <p>Near Chennakeshva Swamy Temple,</p>
+                  <p>Kote, Belur - 573115</p>
                 </div>
               </div>
               <div className="contact-item">
                 <i className="bi bi-telephone-fill"></i>
                 <div>
                   <p>
-                    <a href="tel:+919876543210">+91 9535403545</a>
+                    <a href="tel:+919535403545">+91 9535403545</a>
                   </p>
-                  {/* <p>
-                    <a href="tel:+911234567890">+91 12345 67890</a>
-                  </p> */}
                 </div>
               </div>
               <div className="contact-item">
                 <i className="bi bi-envelope-fill"></i>
                 <div>
-                  <p>
-                    <a href="mailto:manikantajewellers99@gmail.com">manikantajewellers99@gmail.com</a>
-                  </p>
                   <p>
                     <a href="mailto:manikantajewellers99@gmail.com">manikantajewellers99@gmail.com</a>
                   </p>

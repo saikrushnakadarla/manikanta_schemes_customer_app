@@ -1,0 +1,596 @@
+/* Navbar.css - Responsive Navigation Bar */
+
+.navbar-custom {
+    background: white;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    width: 100%;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.navbar-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.6rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+}
+
+/* Mobile Menu Button - LEFT Side */
+.mobile-menu-btn {
+    display: none;
+    cursor: pointer;
+    z-index: 1001;
+    padding: 5px;
+    order: 0;
+}
+
+/* Logo Styles - Center with Brand Name */
+.navbar-logo {
+    display: flex;
+    align-items: center;
+    order: 1;
+    flex: 1;
+    justify-content: center;
+}
+
+.navbar-logo a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    gap: 12px;
+}
+
+.logo-image {
+    height: 55px;
+    width: auto;
+    transition: transform 0.3s ease;
+    border-radius: 8px;
+}
+
+.logo-image:hover {
+    transform: scale(1.02);
+}
+
+.brand-name {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: rgb(163, 110, 41);
+    letter-spacing: 1px;
+    font-family: 'Playfair Display', serif;
+}
+
+.brand-subtitle {
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: rgb(163, 110, 41);
+    letter-spacing: 2px;
+    margin-left: 2px;
+    font-family: 'Playfair Display', serif;
+}
+
+/* Right side icons */
+.navbar-icons {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    order: 2;
+}
+
+.nav-icon {
+    position: relative;
+    color: rgb(163, 110, 41);
+    font-size: 1.4rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-icon:hover {
+    color: rgb(143, 90, 21);
+    transform: scale(1.1);
+}
+
+.icon-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: rgb(163, 110, 41);
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 0.65rem;
+    font-weight: bold;
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: bounceIn 0.5s ease;
+}
+
+/* Desktop Navigation Links */
+.navbar-links {
+    display: flex;
+    align-items: center;
+    order: 3;
+}
+
+.navbar-links ul {
+    display: flex;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    align-items: center;
+}
+
+.navbar-links li {
+    list-style: none;
+}
+
+.navbar-links a,
+.logout-btn {
+    color: #333;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.navbar-links a i,
+.logout-btn i {
+    font-size: 1rem;
+    color: rgb(163, 110, 41);
+}
+
+.navbar-links a:hover,
+.logout-btn:hover {
+    background: rgba(163, 110, 41, 0.1);
+    color: rgb(163, 110, 41);
+}
+
+.navbar-links a:hover i,
+.logout-btn:hover i {
+    color: rgb(163, 110, 41);
+}
+
+.logout-btn {
+    background: rgba(220, 53, 69, 0.08);
+    color: #dc3545;
+}
+
+.logout-btn:hover {
+    background: rgba(220, 53, 69, 0.15);
+    color: #dc3545;
+}
+
+.logout-btn:hover i {
+    color: #dc3545;
+}
+
+.hamburger {
+    width: 28px;
+    height: 20px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.hamburger span {
+    display: block;
+    width: 100%;
+    height: 2.5px;
+    background-color: rgb(163, 110, 41);
+    border-radius: 3px;
+    transition: all 0.3s ease;
+}
+
+.hamburger.active span:nth-child(1) {
+    transform: rotate(45deg) translate(7px, 6px);
+}
+
+.hamburger.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -6px);
+}
+
+/* Mobile Close Button */
+.mobile-close-btn {
+    display: none;
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: rgb(163, 110, 41);
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 5px;
+    z-index: 1002;
+    transition: transform 0.3s ease;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.mobile-close-btn:hover {
+    background: rgba(163, 110, 41, 0.1);
+    transform: rotate(90deg);
+}
+
+/* Mobile Overlay */
+.mobile-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+    animation: fadeIn 0.3s ease;
+}
+
+.mobile-badge {
+    background: rgb(163, 110, 41);
+    color: white;
+    border-radius: 50%;
+    padding: 1px 6px;
+    font-size: 0.7rem;
+    margin-left: auto;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 992px) {
+    .brand-name {
+        font-size: 1.2rem;
+    }
+    
+    .brand-subtitle {
+        font-size: 0.75rem;
+    }
+    
+    .logo-image {
+        height: 45px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .navbar-container {
+        padding: 0.6rem 1rem;
+        justify-content: space-between;
+    }
+
+    .navbar-icons {
+        gap: 15px;
+        order: 2;
+    }
+
+    .nav-icon {
+        font-size: 1.2rem;
+    }
+
+    .logo-image {
+        height: 40px;
+    }
+
+    .brand-name {
+        font-size: 1rem;
+    }
+    
+    .brand-subtitle {
+        font-size: 0.7rem;
+        letter-spacing: 1px;
+    }
+
+    /* Show mobile menu button - LEFT */
+    .mobile-menu-btn {
+        display: flex;
+        order: 0;
+    }
+
+    /* Center the logo */
+    .navbar-logo {
+        order: 1;
+        flex: 0 1 auto;
+        justify-content: center;
+    }
+
+    .navbar-logo a {
+        gap: 8px;
+    }
+
+    /* Show close button in mobile */
+    .mobile-close-btn {
+        display: flex !important;
+    }
+
+    /* Mobile Menu - Slide from LEFT */
+    .navbar-links {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: -100%;
+        width: 320px;
+        max-width: 80%;
+        height: 100vh;
+        background: white;
+        padding: 70px 25px 30px;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 2px 0 30px rgba(0, 0, 0, 0.15);
+        z-index: 999;
+        overflow-y: auto;
+        flex-direction: column;
+    }
+
+    .navbar-links.active {
+        left: 0;
+    }
+
+    /* Show overlay when menu is open */
+    .mobile-overlay {
+        display: block;
+    }
+
+    .navbar-links ul {
+        flex-direction: column;
+        gap: 0.3rem;
+        width: 100%;
+        flex: 1;
+        margin-top: 20px;
+    }
+
+    .navbar-links li {
+        width: 100%;
+        list-style: none;
+    }
+
+    .navbar-links a,
+    .logout-btn {
+        width: 100%;
+        padding: 0.7rem 1rem;
+        justify-content: flex-start;
+        font-size: 1rem;
+        border-radius: 8px;
+        color: #333;
+        text-decoration: none;
+    }
+
+    .navbar-links a i,
+    .logout-btn i {
+        width: 25px;
+        font-size: 1.1rem;
+        color: rgb(163, 110, 41);
+    }
+
+    .navbar-links a:hover,
+    .logout-btn:hover {
+        background: rgba(163, 110, 41, 0.1);
+        color: rgb(163, 110, 41);
+        transform: translateX(5px);
+    }
+
+    .navbar-links a:hover i,
+    .logout-btn:hover i {
+        color: rgb(163, 110, 41);
+    }
+
+    .logout-btn {
+        background: rgba(220, 53, 69, 0.08);
+        color: #dc3545;
+        margin-top: 10px;
+    }
+
+    .logout-btn:hover {
+        background: rgba(220, 53, 69, 0.15);
+        color: #dc3545;
+    }
+
+    .logout-btn:hover i {
+        color: #dc3545;
+    }
+
+    .mobile-badge {
+        margin-left: auto;
+        background: rgb(163, 110, 41);
+        color: white;
+    }
+}
+
+/* Small mobile devices */
+@media screen and (max-width: 480px) {
+    .navbar-container {
+        padding: 0.5rem 0.8rem;
+    }
+
+    .navbar-icons {
+        gap: 12px;
+    }
+
+    .nav-icon {
+        font-size: 1.1rem;
+    }
+
+    .navbar-links {
+        width: 85%;
+        max-width: 300px;
+        padding: 60px 20px 20px;
+    }
+
+    .logo-image {
+        height: 35px;
+    }
+
+    .brand-name {
+        font-size: 0.85rem;
+    }
+    
+    .brand-subtitle {
+        font-size: 0.6rem;
+        letter-spacing: 1px;
+    }
+
+    .navbar-links a,
+    .logout-btn {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.9rem;
+    }
+
+    .hamburger {
+        width: 22px;
+        height: 16px;
+    }
+
+    .hamburger span {
+        height: 2px;
+        background-color: rgb(163, 110, 41);
+    }
+
+    .hamburger.active span:nth-child(1) {
+        transform: rotate(45deg) translate(6px, 5px);
+    }
+
+    .hamburger.active span:nth-child(3) {
+        transform: rotate(-45deg) translate(6px, -5px);
+    }
+
+    .mobile-close-btn {
+        font-size: 1.5rem;
+        top: 10px;
+        right: 15px;
+        width: 35px;
+        height: 35px;
+        color: rgb(163, 110, 41);
+    }
+}
+
+/* Very small devices */
+@media screen and (max-width: 360px) {
+    .navbar-container {
+        padding: 0.4rem 0.5rem;
+    }
+
+    .navbar-icons {
+        gap: 8px;
+    }
+
+    .nav-icon {
+        font-size: 1rem;
+    }
+
+    .navbar-links {
+        width: 90%;
+        max-width: 260px;
+        padding: 50px 15px 15px;
+    }
+
+    .logo-image {
+        height: 30px;
+    }
+
+    .brand-name {
+        font-size: 0.75rem;
+    }
+    
+    .brand-subtitle {
+        font-size: 0.5rem;
+        letter-spacing: 0.5px;
+    }
+
+    .navbar-links a,
+    .logout-btn {
+        padding: 0.5rem 0.7rem;
+        font-size: 0.85rem;
+    }
+
+    .navbar-links a i,
+    .logout-btn i {
+        width: 18px;
+        font-size: 0.9rem;
+        color: rgb(163, 110, 41);
+    }
+
+    .hamburger {
+        width: 18px;
+        height: 14px;
+    }
+
+    .hamburger span {
+        height: 2px;
+        background-color: rgb(163, 110, 41);
+    }
+
+    .hamburger.active span:nth-child(1) {
+        transform: rotate(45deg) translate(5px, 4px);
+    }
+
+    .hamburger.active span:nth-child(3) {
+        transform: rotate(-45deg) translate(5px, -4px);
+    }
+}
+
+/* Animation for mobile menu items */
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.navbar-links.active ul li {
+    animation: slideInLeft 0.3s ease forwards;
+    opacity: 0;
+}
+
+.navbar-links.active ul li:nth-child(1) { animation-delay: 0.05s; }
+.navbar-links.active ul li:nth-child(2) { animation-delay: 0.1s; }
+.navbar-links.active ul li:nth-child(3) { animation-delay: 0.15s; }
+.navbar-links.active ul li:nth-child(4) { animation-delay: 0.2s; }
+.navbar-links.active ul li:nth-child(5) { animation-delay: 0.25s; }
+.navbar-links.active ul li:nth-child(6) { animation-delay: 0.3s; }
+.navbar-links.active ul li:nth-child(7) { animation-delay: 0.35s; }
+.navbar-links.active ul li:nth-child(8) { animation-delay: 0.4s; }
+.navbar-links.active ul li:nth-child(9) { animation-delay: 0.45s; }
+.navbar-links.active ul li:nth-child(10) { animation-delay: 0.5s; }
+.navbar-links.active ul li:nth-child(11) { animation-delay: 0.55s; }
+
+/* Fade In Animation for Overlay */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes bounceIn {
+    0% { transform: scale(0); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}

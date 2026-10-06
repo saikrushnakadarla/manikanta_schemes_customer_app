@@ -3,38 +3,68 @@ import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Navbar.css';
-// Import your logo image
 import logoImage from '../Images/MANIKANTHA JEWELLERS FINAL LOOG DESIGN (1)_page-0001.jpg';
 import baseURL from '../URL/BaseURL';
+import { ROUTES, getHomeRoute, buildHomeFilterUrl, getUserName } from './NavConfig';
 
 const Navbar = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
+  const [categories, setCategories] = useState([]);
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
+  const [expanded, setExpanded] = useState(null);
   const navigate = useNavigate();
 
-  // Get current logged-in customer ID
+  // Get current logged-in customer ID (null for guests)
   const getCustomerId = () => {
     const userData = localStorage.getItem('user');
     if (userData) {
       try {
         const user = JSON.parse(userData);
-        return user.id || user.customer_id || user.user_id || null;
+        const uid = user.id || user.customer_id || user.user_id || null;
+        if (uid) return uid;
       } catch (e) {
         console.error('Error parsing user data:', e);
       }
     }
-    
-    const customerId = localStorage.getItem('customerId') || 
-                      localStorage.getItem('customer_id') || 
-                      localStorage.getItem('userId');
-    
+
+    const customerId =
+      localStorage.getItem('customerId') ||
+      localStorage.getItem('customer_id') ||
+      localStorage.getItem('userId');
+
     if (customerId) {
       return parseInt(customerId);
     }
-    
+
     return null;
+  };
+
+  const isGuest = !getCustomerId();
+
+  // Guests get the Register / Login popup instead of protected pages
+  const promptRegister = (action = 'continue') => {
+    closeDrawer();
+    Swal.fire({
+      title: '🔒 Register to Continue',
+      text: `Please register or login to ${action}.`,
+      icon: 'info',
+      showDenyButton: true,
+      showCancelButton: true,
+      confirmButtonText: 'Register',
+      denyButtonText: 'Login',
+      cancelButtonText: 'Not now',
+      confirmButtonColor: '#5b2189',
+      denyButtonColor: '#C9A84C',
+      cancelButtonColor: '#888',
+      background: '#1a1a1a',
+      color: '#ffffff',
+      backdrop: 'rgba(0,0,0,0.8)'
+    }).then((result) => {
+      if (result.isConfirmed) navigate('/customerregister');
+      else if (result.isDenied) navigate('/login');
+    });
   };
 
   // Fetch cart count
@@ -110,8 +140,8 @@ const Navbar = () => {
       } else if (data && data.data && Array.isArray(data.data)) {
         items = data.data;
       }
-      
-      const customerItems = items.filter(item => item.customer === customerId);
+
+      const customerItems = items.filter((item) => item.customer === customerId);
       setWishlistCount(customerItems.length);
     } catch (err) {
       console.error('Error fetching wishlist count:', err);
@@ -119,17 +149,47 @@ const Navbar = () => {
     }
   };
 
+  // Fetch categories + sub categories for the sidebar
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch(`${baseURL}/api/opening-tags/`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      const items = (data && data.status && data.data ? data.data : []).filter((i) => i.is_display === 1);
+
+      const catMap = new Map();
+      items.forEach((item) => {
+        const catName = item.category || 'Jewellery';
+        if (!catMap.has(catName)) {
+          catMap.set(catName, { name: catName, image: item.image || '', subs: new Map() });
+        }
+        const cat = catMap.get(catName);
+        if (!cat.image && item.image) cat.image = item.image;
+        const subName = item.sub_category;
+        if (subName && !cat.subs.has(subName)) {
+          cat.subs.set(subName, { name: subName, image: item.image || '' });
+        }
+      });
+
+      setCategories(
+        Array.from(catMap.values()).map((c) => ({ ...c, subs: Array.from(c.subs.values()) }))
+      );
+    } catch (err) {
+      console.error('Error fetching sidebar categories:', err);
+      setCategories([]);
+    } finally {
+      setCategoriesLoaded(true);
+    }
+  };
+
   useEffect(() => {
     fetchCartCount();
     fetchWishlistCount();
 
-    const handleCartUpdate = () => {
-      fetchCartCount();
-    };
-
-    const handleWishlistUpdate = () => {
-      fetchWishlistCount();
-    };
+    const handleCartUpdate = () => fetchCartCount();
+    const handleWishlistUpdate = () => fetchWishlistCount();
 
     window.addEventListener('cartUpdated', handleCartUpdate);
     window.addEventListener('wishlistUpdated', handleWishlistUpdate);
@@ -138,238 +198,180 @@ const Navbar = () => {
       window.removeEventListener('cartUpdated', handleCartUpdate);
       window.removeEventListener('wishlistUpdated', handleWishlistUpdate);
     };
+    // eslint-disable-next-line
   }, []);
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
+  const openDrawer = () => {
+    setIsDrawerOpen(true);
+    if (!categoriesLoaded) fetchCategories();
   };
 
-  const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false);
+  const closeDrawer = () => setIsDrawerOpen(false);
+
+  const toggleCategory = (name) => {
+    setExpanded((prev) => (prev === name ? null : name));
   };
 
-  const handleLogout = async () => {
-    const result = await Swal.fire({
-      title: 'Are you sure?',
-      text: "You are about to logout from your account!",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#A36E29',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, logout!',
-      cancelButtonText: 'Cancel',
-      background: '#fff',
-      backdrop: true,
-      allowOutsideClick: false,
-      allowEscapeKey: true,
-    });
+  const goToFilter = (category, sub) => {
+    closeDrawer();
+    navigate(buildHomeFilterUrl(category, sub));
+  };
 
-    if (!result.isConfirmed) {
-      return;
+  const renderThumb = (image, alt) =>
+    image ? (
+      <img
+        src={image}
+        alt={alt}
+        className="tn-thumb"
+        onError={(e) => {
+          e.target.style.display = 'none';
+          if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+        }}
+      />
+    ) : null;
+
+  const Placeholder = ({ show }) => (
+    <span className="tn-thumb tn-thumb-placeholder" style={{ display: show ? 'flex' : 'none' }}>
+      <i className="bi bi-image"></i>
+    </span>
+  );
+
+  // Header icon: real link for members, register popup for guests
+  const renderHeaderIcon = (to, title, iconClass, count, actionText) => {
+    if (isGuest) {
+      return (
+        <button
+          type="button"
+          className="tn-icon-btn"
+          title={title}
+          aria-label={title}
+          onClick={() => promptRegister(actionText)}
+          style={{ border: 'none' }}
+        >
+          <i className={`bi ${iconClass}`}></i>
+        </button>
+      );
     }
-
-    const userData = JSON.parse(localStorage.getItem('user') || '{}');
-    const token = localStorage.getItem('token');
-
-    setIsLoggingOut(true);
-
-    Swal.fire({
-      title: 'Logging out...',
-      text: 'Please wait while we log you out',
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      showConfirmButton: false,
-      willOpen: () => {
-        Swal.showLoading();
-      }
-    });
-
-    try {
-      const response = await fetch(`${baseURL}/api/customer/logout/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : '',
-        },
-        body: JSON.stringify({
-          user_id: userData.id || userData.user_id || 0
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Logout API error:', errorData);
-      } else {
-        const data = await response.json().catch(() => ({}));
-        console.log('Logout successful:', data);
-      }
-
-    } catch (error) {
-      console.error('Error during logout API call:', error);
-    } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-
-      Swal.close();
-
-      await Swal.fire({
-        title: 'Logged Out!',
-        text: 'You have been successfully logged out.',
-        icon: 'success',
-        timer: 1500,
-        showConfirmButton: false,
-        background: '#fff',
-      });
-
-      navigate('/');
-      closeMobileMenu();
-      setIsLoggingOut(false);
-    }
+    return (
+      <Link to={to} className="tn-icon-btn" title={title}>
+        <i className={`bi ${iconClass}`}></i>
+        {count > 0 && <span className="tn-badge">{count}</span>}
+      </Link>
+    );
   };
 
   return (
-    <nav className="navbar-custom">
-      <div className="navbar-container">
-        {/* Mobile Menu Button - LEFT side */}
-        <div className="mobile-menu-btn" onClick={toggleMobileMenu}>
-          <div className={`hamburger ${isMobileMenuOpen ? 'active' : ''}`}>
+    <>
+      <header className="tn-header">
+        <div className="tn-header-inner">
+          <button className="tn-menu-btn" onClick={openDrawer} aria-label="Open menu">
             <span></span>
             <span></span>
             <span></span>
-          </div>
-        </div>
-
-        {/* Logo - Center with Brand Name */}
-        <div className="navbar-logo">
-          <Link to="/dashboard" onClick={closeMobileMenu}>
-            <img
-              src={logoImage}
-              alt="Company Logo"
-              className="logo-image"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.style.display = 'none';
-              }}
-            />
-            <span className="brand-name">MANIKANTHA</span>
-            <span className="brand-subtitle">JEWELLERS</span>
-          </Link>
-        </div>
-
-        {/* Right side icons - Cart and Wishlist */}
-        <div className="navbar-icons">
-          <Link to="/wishlist" className="nav-icon" onClick={closeMobileMenu} title="Wishlist">
-            <i className="bi bi-heart-fill"></i>
-            {wishlistCount > 0 && (
-              <span className="icon-badge">{wishlistCount}</span>
-            )}
-          </Link>
-          <Link to="/cartpage" className="nav-icon" onClick={closeMobileMenu} title="Cart">
-            <i className="bi bi-cart-fill"></i>
-            {cartCount > 0 && (
-              <span className="icon-badge">{cartCount}</span>
-            )}
-          </Link>
-        </div>
-
-        {/* Navigation Links - Desktop */}
-        <div className={`navbar-links ${isMobileMenuOpen ? 'active' : ''}`}>
-          {/* Close button for mobile */}
-          <button className="mobile-close-btn" onClick={closeMobileMenu}>
-            <i className="bi bi-x-lg"></i>
           </button>
 
-          <ul>
-            <li>
-              <Link to="/dashboard" onClick={closeMobileMenu}>
-                <i className="bi bi-house-door"></i>
-                <span>Dashboard</span>
-              </Link>
-            </li>
+          <Link to={getHomeRoute()} className="tn-logo" onClick={closeDrawer}>
+            <span className="tn-logo-chip">
+              <img
+                src={logoImage}
+                alt="Company Logo"
+                className="tn-logo-img"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.style.display = 'none';
+                }}
+              />
+            </span>
+            <span className="tn-brand">
+              <span className="tn-brand-name">MANIKANTHA</span>
+              <span className="tn-brand-sub">JEWELLERS</span>
+            </span>
+          </Link>
 
-            <li>
-              <Link to="/products" onClick={closeMobileMenu}>
-                <i className="bi bi-grid-3x3-gap-fill"></i>
-                <span>Products</span>
-              </Link>
-            </li>
+          <div className="tn-icons">
+            {renderHeaderIcon(ROUTES.wishlist, 'Wishlist', 'bi-heart-fill', wishlistCount, 'view your wishlist')}
+            {renderHeaderIcon(ROUTES.cart, 'Cart', 'bi-cart-fill', cartCount, 'view your cart')}
+            {renderHeaderIcon(ROUTES.notifications, 'Notifications', 'bi-bell-fill', 0, 'view your notifications')}
+          </div>
+        </div>
+      </header>
 
-            <li>
-              <Link to="/cartpage" onClick={closeMobileMenu}>
-                <i className="bi bi-cart-fill"></i>
-                <span>Cart</span>
-                {cartCount > 0 && (
-                  <span className="mobile-badge">{cartCount}</span>
-                )}
-              </Link>
-            </li>
+      {/* Sidebar drawer */}
+      <div
+        className={`tn-overlay ${isDrawerOpen ? 'show' : ''}`}
+        onClick={closeDrawer}
+      ></div>
 
-            <li>
-              <Link to="/wishlist" onClick={closeMobileMenu}>
-                <i className="bi bi-heart-fill"></i>
-                <span>Wishlist</span>
-                {wishlistCount > 0 && (
-                  <span className="mobile-badge">{wishlistCount}</span>
-                )}
-              </Link>
-            </li>
+      <button
+        className={`tn-drawer-close ${isDrawerOpen ? 'show' : ''}`}
+        onClick={closeDrawer}
+        aria-label="Close menu"
+      >
+        <i className="bi bi-chevron-left"></i>
+      </button>
 
-            <li>
-              <Link to="/orders" onClick={closeMobileMenu}>
-                <i className="bi bi-box-seam-fill"></i>
-                <span>Orders</span>
-              </Link>
-            </li>
-
-            <li>
-              <Link to="/schemes" onClick={closeMobileMenu}>
-                <i className="bi bi-journal-bookmark-fill"></i>
-                <span>Schemes</span>
-              </Link>
-            </li>
-
-            <li>
-              <Link to="/about" onClick={closeMobileMenu}>
-                <i className="bi bi-info-circle-fill"></i>
-                <span>About Us</span>
-              </Link>
-            </li>
-
-            <li>
-              <Link to="/contact" onClick={closeMobileMenu}>
-                <i className="bi bi-headset"></i>
-                <span>Contact Us</span>
-              </Link>
-            </li>
-
-            <li>
-              <button
-                onClick={handleLogout}
-                className="logout-btn"
-                disabled={isLoggingOut}
-              >
-                {isLoggingOut ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    <span>Logging out...</span>
-                  </>
-                ) : (
-                  <>
-                    <i className="bi bi-box-arrow-right"></i>
-                    <span>Logout</span>
-                  </>
-                )}
-              </button>
-            </li>
-          </ul>
+      <aside className={`tn-drawer ${isDrawerOpen ? 'open' : ''}`} aria-hidden={!isDrawerOpen}>
+        <div className="tn-drawer-user">
+          <span className="tn-avatar">
+            <i className="bi bi-person-fill"></i>
+          </span>
+          <p className="tn-hi">Hi</p>
+          <p className="tn-username">{isGuest ? 'Guest' : getUserName()}</p>
         </div>
 
-        {/* Overlay */}
-        {isMobileMenuOpen && (
-          <div className="mobile-overlay" onClick={closeMobileMenu}></div>
-        )}
-      </div>
-    </nav>
+        <h3 className="tn-drawer-title">Categories &amp; Sub Categories</h3>
+
+        <div className="tn-cat-list">
+          {!categoriesLoaded && <p className="tn-cat-msg">Loading...</p>}
+          {categoriesLoaded && categories.length === 0 && (
+            <p className="tn-cat-msg">No categories found</p>
+          )}
+
+          {categories.map((cat) => {
+            const isOpen = expanded === cat.name;
+            return (
+              <div key={cat.name} className="tn-cat-block">
+                <div className="tn-cat-row">
+                  <button
+                    className="tn-cat-main"
+                    onClick={() => goToFilter(cat.name, '')}
+                  >
+                    {renderThumb(cat.image, cat.name)}
+                    <Placeholder show={!cat.image} />
+                    <span className="tn-cat-name">{cat.name}</span>
+                  </button>
+                  {cat.subs.length > 0 && (
+                    <button
+                      className="tn-cat-toggle"
+                      onClick={() => toggleCategory(cat.name)}
+                      aria-label={isOpen ? 'Collapse' : 'Expand'}
+                    >
+                      {isOpen ? '−' : '+'}
+                    </button>
+                  )}
+                </div>
+
+                {isOpen && (
+                  <div className="tn-sub-list">
+                    {cat.subs.map((sub) => (
+                      <button
+                        key={sub.name}
+                        className="tn-sub-row"
+                        onClick={() => goToFilter(cat.name, sub.name)}
+                      >
+                        {renderThumb(sub.image, sub.name)}
+                        <Placeholder show={!sub.image} />
+                        <span className="tn-sub-name">{sub.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </aside>
+    </>
   );
 };
 

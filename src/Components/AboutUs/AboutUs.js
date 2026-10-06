@@ -7,28 +7,28 @@ const AboutUs = () => {
   return (
     <div className="about-page">
       <Navbar />
-      
+
       {/* Hero Section */}
       <section className="about-hero">
         <div className="about-hero-content">
-          <h1 className="about-hero-title">Crafting Dreams Since 1985</h1>
+          <h1 className="about-hero-title">Crafting Dreams Since 2026</h1>
           <p className="about-hero-subtitle">
-            Where tradition meets elegance in every piece of jewellery
+            Where contemporary style meets traditional heritage
           </p>
           <div className="about-hero-stats">
             <div className="stat-item">
-              <span className="stat-number">40+</span>
-              <span className="stat-label">Years of Excellence</span>
+              <span className="stat-number">1+</span>
+              <span className="stat-label">Years of Craftsmanship</span>
             </div>
             <div className="stat-divider"></div>
             <div className="stat-item">
-              <span className="stat-number">500+</span>
-              <span className="stat-label">Jewellery Designs</span>
+              <span className="stat-number">100+</span>
+              <span className="stat-label">Unique Designs</span>
             </div>
             <div className="stat-divider"></div>
             <div className="stat-item">
-              <span className="stat-number">50K+</span>
-              <span className="stat-label">Happy Customers</span>
+              <span className="stat-number">1K+</span>
+              <span className="stat-label">Cherished Heirlooms</span>
             </div>
           </div>
         </div>
@@ -51,28 +51,35 @@ const AboutUs = () => {
             <div className="story-content">
               <h2 className="section-title">Our Story</h2>
               <p className="story-text">
-                For over four decades, we have been dedicated to creating exquisite 
-                jewellery that celebrates life's most precious moments. Our journey 
-                began with a simple vision - to bring the finest craftsmanship and 
-                timeless elegance to every piece we create.
+                Manikanta Jewellers is a distinguished jewellery brand based in Belur, 
+                celebrated for its exceptional craftsmanship and timeless elegance. 
+                The brand seamlessly blends contemporary style with traditional heritage, 
+                creating wearable pieces of art that honor passion and individuality.
               </p>
               <p className="story-text">
-                Today, we stand as a testament to Indian heritage and artistry, 
-                combining traditional techniques with contemporary designs. Each 
-                piece tells a story of passion, precision, and perfection.
+                Each piece is meticulously handcrafted, reflecting intricate details 
+                and skilled artistry, designed for the modern individual who embraces 
+                their unique style. Our collections transcend fleeting fashion trends, 
+                offering enduring elegance that resonates with personal expression.
+              </p>
+              <p className="story-text">
+                The brand's commitment to quality and personalized attention ensures 
+                that every creation becomes a cherished heirloom, symbolizing unbreakable 
+                bonds and significant milestones. We invite you to embark on a journey 
+                of self-discovery and self-expression through our exquisite jewellery offerings.
               </p>
               <div className="story-features">
                 <div className="feature">
                   <i className="bi bi-award-fill"></i>
-                  <span>Certified Pure</span>
+                  <span>Handcrafted Artistry</span>
                 </div>
                 <div className="feature">
                   <i className="bi bi-gem-fill"></i>
-                  <span>Hallmarked Jewellery</span>
+                  <span>Timeless Elegance</span>
                 </div>
                 <div className="feature">
                   <i className="bi bi-shield-check"></i>
-                  <span>Trusted Since 1985</span>
+                  <span>Heirloom Quality</span>
                 </div>
               </div>
             </div>
@@ -90,21 +97,28 @@ const AboutUs = () => {
                 <i className="bi bi-heart-fill"></i>
               </div>
               <h3>Passion for Craft</h3>
-              <p>Every piece is crafted with love and attention to detail</p>
+              <p>Every piece is meticulously handcrafted with intricate details and skilled artistry</p>
             </div>
             <div className="value-card">
               <div className="value-icon">
                 <i className="bi bi-shield-fill-check"></i>
               </div>
-              <h3>Trust & Transparency</h3>
-              <p>100% certified and hallmarked jewellery with complete transparency</p>
+              <h3>Quality & Trust</h3>
+              <p>Commitment to quality and personalized attention ensures every creation is a cherished heirloom</p>
             </div>
             <div className="value-card">
               <div className="value-icon">
                 <i className="bi bi-star-fill"></i>
               </div>
-              <h3>Excellence</h3>
-              <p>Committed to delivering the highest quality in every product</p>
+              <h3>Timeless Elegance</h3>
+              <p>Collections that transcend fleeting fashion trends, offering enduring elegance</p>
+            </div>
+            <div className="value-card">
+              <div className="value-icon">
+                <i className="bi bi-person-fill"></i>
+              </div>
+              <h3>Individual Expression</h3>
+              <p>Designed for the modern individual who embraces their unique style and personal expression</p>
             </div>
           </div>
         </div>
@@ -121,22 +135,22 @@ const AboutUs = () => {
             <div className="team-card">
               <div className="team-avatar">RK</div>
               <h4>Rajesh Kumar</h4>
-              <p>Master Jeweller - 35 Years</p>
+              <p>Master Jeweller</p>
             </div>
             <div className="team-card">
               <div className="team-avatar">PS</div>
               <h4>Priya Sharma</h4>
-              <p>Design Director - 20 Years</p>
+              <p>Design Director</p>
             </div>
             <div className="team-card">
               <div className="team-avatar">AV</div>
               <h4>Arjun Verma</h4>
-              <p>Gemologist - 25 Years</p>
+              <p>Gemologist</p>
             </div>
             <div className="team-card">
               <div className="team-avatar">SN</div>
               <h4>Sunita Nair</h4>
-              <p>Senior Craftsman - 30 Years</p>
+              <p>Senior Craftsman</p>
             </div>
           </div>
         </div>
@@ -149,27 +163,41 @@ const AboutUs = () => {
           <div className="why-grid">
             <div className="why-card">
               <i className="bi bi-gem"></i>
-              <h4>Pure Gold</h4>
-              <p>100% Hallmarked Gold with BIS certification</p>
+              <h4>Handcrafted Excellence</h4>
+              <p>Each piece meticulously handcrafted with intricate details</p>
             </div>
             <div className="why-card">
               <i className="bi bi-arrow-repeat"></i>
-              <h4>Easy Exchange</h4>
-              <p>100% exchange value with minimal making charges</p>
+              <h4>Timeless Designs</h4>
+              <p>Collections that transcend fleeting fashion trends</p>
             </div>
             <div className="why-card">
               <i className="bi bi-truck"></i>
-              <h4>Free Shipping</h4>
-              <p>Complimentary shipping and insurance on all orders</p>
+              <h4>Personalized Service</h4>
+              <p>Commitment to quality and personalized attention for every client</p>
             </div>
             <div className="why-card">
               <i className="bi bi-headset"></i>
-              <h4>Expert Support</h4>
-              <p>Dedicated jewellery experts to guide you</p>
+              <h4>Cherished Heirlooms</h4>
+              <p>Every creation becomes a cherished heirloom for significant milestones</p>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Visit Store CTA */}
+      {/* <section className="about-visit">
+        <div className="container">
+          <div className="visit-content">
+            <h2>Visit Our Store</h2>
+            <p>
+              Immerse yourself in the beauty of our handcrafted designs and 
+              experience the impeccable craftsmanship firsthand.
+            </p>
+            <button className="visit-btn">Find Us in Belur</button>
+          </div>
+        </div>
+      </section> */}
 
       <Footer />
     </div>

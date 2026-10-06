@@ -13,6 +13,10 @@ const WishlistPage = () => {
   const [error, setError] = useState(null);
   const [removingItem, setRemovingItem] = useState({});
 
+  // Details view state
+  const [selectedId, setSelectedId] = useState(null);
+  const [showBreakup, setShowBreakup] = useState(false);
+
   // Get current logged-in customer ID
   const getCustomerId = () => {
     const userData = localStorage.getItem('user');
@@ -24,15 +28,15 @@ const WishlistPage = () => {
         console.error('Error parsing user data:', e);
       }
     }
-    
-    const customerId = localStorage.getItem('customerId') || 
-                      localStorage.getItem('customer_id') || 
+
+    const customerId = localStorage.getItem('customerId') ||
+                      localStorage.getItem('customer_id') ||
                       localStorage.getItem('userId');
-    
+
     if (customerId) {
       return parseInt(customerId);
     }
-    
+
     return null;
   };
 
@@ -41,7 +45,7 @@ const WishlistPage = () => {
     try {
       setLoading(true);
       const customerId = getCustomerId();
-      
+
       if (!customerId) {
         setError('Please login to view your wishlist');
         setLoading(false);
@@ -86,17 +90,17 @@ const WishlistPage = () => {
               'Content-Type': 'application/json',
             },
           });
-          
+
           if (!productResponse.ok) {
             throw new Error(`HTTP error! status: ${productResponse.status}`);
           }
-          
+
           const productData = await productResponse.json();
           console.log(`Product ${productId} details:`, productData);
-          
+
           // Extract the product data from the response
           const productDetails = productData.data || productData;
-          
+
           return {
             ...item,
             productDetails: productDetails
@@ -160,7 +164,11 @@ const WishlistPage = () => {
       }
 
       // Remove item from state
-      setWishlistItems(prev => prev.filter(item => item.wishlist_id !== wishlistId));
+      setWishlistItems(prev => prev.filter(item => (item.wishlist_id || item.id) !== wishlistId));
+
+      // Close the details view if this item was open
+      setSelectedId(prev => (prev === wishlistId ? null : prev));
+      setShowBreakup(false);
 
       // Update wishlist count in navbar
       window.dispatchEvent(new Event('wishlistUpdated'));
@@ -193,7 +201,7 @@ const WishlistPage = () => {
   const addToCart = async (product, item) => {
     try {
       const customerId = getCustomerId();
-      
+
       if (!customerId) {
         Swal.fire({
           title: 'Please Login',
@@ -208,10 +216,10 @@ const WishlistPage = () => {
 
       // Get the product ID from the wishlist item
       const productId = product.opentag_id || item.product;
-      
+
       // Get the total price from product data
       const unitPrice = parseFloat(product.total_price) || 0;
-      
+
       const cartData = {
         customer: customerId,
         quantity: 1,
@@ -266,9 +274,20 @@ const WishlistPage = () => {
     }
   };
 
-  // Navigate to product detail
+  // Navigate to the full product page (still available from the details view)
   const handleProductClick = (productId) => {
     navigate(`/product/${productId}`);
+  };
+
+  // Open / close the in-page details view
+  const openDetails = (wishlistId) => {
+    setShowBreakup(false);
+    setSelectedId(wishlistId);
+  };
+
+  const closeDetails = () => {
+    setShowBreakup(false);
+    setSelectedId(null);
   };
 
   // Get image URL
@@ -306,6 +325,121 @@ const WishlistPage = () => {
     return product.gross_weight || product.gross_weight || '0g';
   };
 
+  // Availability: treat as available unless the status clearly says otherwise
+  const isProductAvailable = (product) => {
+    const raw = product && product.status;
+    if (raw === undefined || raw === null || String(raw).trim() === '') return true;
+    const status = String(raw).trim().toLowerCase();
+    const unavailable = ['sold', 'sold out', 'out of stock', 'unavailable', 'inactive', 'not available'];
+    return !unavailable.includes(status);
+  };
+
+  // ---------- Helpers for the details view ----------
+
+  // Return the first non-empty value among several possible field names
+  const pick = (obj, keys) => {
+    for (const key of keys) {
+      const value = obj ? obj[key] : undefined;
+      if (value !== undefined && value !== null && String(value).trim() !== '') {
+        return value;
+      }
+    }
+    return null;
+  };
+
+  const toNumber = (value) => {
+    if (value === null || value === undefined) return null;
+    const n = parseFloat(String(value).replace(/,/g, ''));
+    return Number.isNaN(n) ? null : n;
+  };
+
+  const formatINR = (value) => `₹ ${Math.round(value)}`;
+
+  const formatWeight = (value) => {
+    if (value === null || value === undefined) return null;
+    const text = String(value).trim();
+    return /^[0-9.]+$/.test(text) ? `${text} gram` : text;
+  };
+
+  const formatPurity = (value) => {
+    if (value === null || value === undefined) return null;
+    const text = String(value).trim();
+    return /^[0-9.]+$/.test(text) ? `${text}%` : text;
+  };
+
+  // Price breakup rows (only rows we can find in the API data are shown)
+  const getPriceBreakup = (product) => {
+    const total = getProductPrice(product);
+
+    const stone = toNumber(pick(product, ['stone_charges', 'stone_amount', 'stone_value', 'stone_price']));
+    const making = toNumber(pick(product, ['making_charges', 'making_amount', 'va_amount', 'value_added', 'value_addition', 'making']));
+    const gst = toNumber(pick(product, ['gst_amount', 'gst_value', 'tax_amount']));
+    const gstPercent = pick(product, ['gst_percentage', 'gst_percent']);
+    let metal = toNumber(pick(product, ['metal_value', 'gold_value', 'metal_amount', 'gold_amount', 'metal_price']));
+
+    const others = [stone, making, gst].filter(v => v !== null);
+    if (metal === null && others.length > 0) {
+      const remainder = total - others.reduce((sum, v) => sum + v, 0);
+      if (remainder > 0) metal = remainder;
+    }
+
+    const metalName = String(product.metal_type || 'Gold').toUpperCase();
+    const rows = [];
+    if (metal !== null) rows.push({ label: `${metalName} value`, value: metal });
+    if (stone !== null) rows.push({ label: 'Stone Charges', value: stone });
+    if (making !== null) rows.push({ label: 'Value Added / Making', value: making });
+    if (gst !== null) {
+      const pct = toNumber(gstPercent);
+      rows.push({ label: pct !== null && pct > 0 ? `GST (${pct}%)` : 'GST', value: gst });
+    }
+    return { rows, total };
+  };
+
+  // Specification rows (only rows with a value are shown)
+  const getSpecifications = (product, name) => {
+    const specs = [
+      ['Product Name', name],
+      ['Brand Name', pick(product, ['brand_name', 'brand'])],
+      ['Product Code', pick(product, ['pcode_barcode', 'product_code', 'barcode'])],
+      ['Availability', pick(product, ['status']) || 'Made To Order'],
+      ['Product Size', pick(product, ['size', 'product_size', 'ring_size'])],
+      ['Product Metal', pick(product, ['metal_type'])],
+      ['Product Purity', formatPurity(pick(product, ['purity']))],
+      ['Product Colour', pick(product, ['color', 'colour', 'metal_colour', 'metal_color'])],
+      ['Gross Weight', formatWeight(pick(product, ['gross_weight']))],
+      ['Net Weight', formatWeight(pick(product, ['net_weight']))],
+      ['Certified by', pick(product, ['certified_by', 'certification', 'certificate'])],
+    ];
+    return specs.filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== '');
+  };
+
+  // The item currently shown in the details view
+  const selectedItem = selectedId !== null
+    ? wishlistItems.find(i => (i.wishlist_id || i.id) === selectedId)
+    : null;
+
+  // Lock page scroll and allow Esc to close while the details view is open
+  useEffect(() => {
+    if (!selectedItem) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (showBreakup) setShowBreakup(false);
+        else closeDetails();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedItem, showBreakup]);
+
   // Loading state
   if (loading) {
     return (
@@ -336,6 +470,134 @@ const WishlistPage = () => {
     );
   }
 
+  // ---------- Details view (bottom of render, shown over the page) ----------
+  const renderDetails = () => {
+    if (!selectedItem) return null;
+
+    const product = selectedItem.productDetails || {};
+    const name = getProductName(product);
+    const price = getProductPrice(product);
+    const productId = product.opentag_id || selectedItem.product;
+    const wishlistId = selectedItem.wishlist_id || selectedItem.id;
+    const imageUrl = getImageUrl(product);
+    const available = isProductAvailable(product);
+    const availabilityLabel = pick(product, ['status']) || 'Made to order';
+    const specs = getSpecifications(product, name);
+    const breakup = getPriceBreakup(product);
+    const description = pick(product, ['description', 'product_description']) ||
+      `Introducing ${name}. Elevate your style with this stunning piece, perfect for any occasion. Order yours today and add a touch of elegance to your jewellery collection.`;
+
+    return (
+      <div className="wd-overlay" onClick={closeDetails}>
+        <div
+          className="wd-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${name} details`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="wd-header">
+            <button className="wd-back" onClick={closeDetails} aria-label="Back to wishlist">
+              ←
+            </button>
+            <h2 className="wd-title">{name}</h2>
+          </div>
+
+          {/* Image + availability tag */}
+          <div className="wd-image-wrap">
+            <img
+              src={imageUrl}
+              alt={name}
+              className="wd-image"
+              onError={(e) => {
+                e.target.src = 'https://via.placeholder.com/400x400/FFD700/FFFFFF?text=Jewellery';
+              }}
+            />
+            <span className={`wd-tag ${available ? 'wd-tag-ok' : 'wd-tag-warn'}`}>
+              {availabilityLabel}
+            </span>
+          </div>
+
+          {/* Name + price */}
+          <div className="wd-info">
+            <div className="wd-name">{name}</div>
+            <div className="wd-price-row">
+              <span className="wd-price">{formatINR(price)}</span>
+              <button className="wd-breakup-link" onClick={() => setShowBreakup(true)}>
+                View Price Breakup
+              </button>
+            </div>
+
+            {/* Actions */}
+            <div className="wd-actions">
+              <button
+                className="wd-remove"
+                aria-label="Remove from wishlist"
+                onClick={() => removeFromWishlist(wishlistId, name)}
+                disabled={removingItem[wishlistId]}
+              >
+                {removingItem[wishlistId] ? '⏳' : '🗑'}
+              </button>
+              <button
+                className="wd-cart"
+                onClick={() => addToCart(product, selectedItem)}
+                disabled={!available}
+              >
+                {available ? 'Move to Cart' : 'Out of Stock'}
+              </button>
+            </div>
+
+            {/* Description */}
+            <h3 className="wd-section-title">Description</h3>
+            <p className="wd-description">{description}</p>
+
+            {/* Specifications */}
+            <h3 className="wd-section-title wd-spec-title">Specifications</h3>
+            <div className="wd-specs">
+              {specs.map(([label, value]) => (
+                <div className="wd-spec-row" key={label}>
+                  <span className="wd-spec-label">{label}</span>
+                  <span className="wd-spec-value">{String(value)}</span>
+                </div>
+              ))}
+            </div>
+
+            <button className="wd-full-link" onClick={() => handleProductClick(productId)}>
+              Open full product page
+            </button>
+          </div>
+        </div>
+
+        {/* Price Breakup bottom sheet */}
+        {showBreakup && (
+          <div
+            className="wd-sheet-layer"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowBreakup(false);
+            }}
+          >
+            <div className="wd-sheet" onClick={(e) => e.stopPropagation()}>
+              <div className="wd-sheet-handle" />
+              <h3 className="wd-sheet-title">Price Breakup</h3>
+              {breakup.rows.map((row) => (
+                <div className="wd-sheet-row" key={row.label}>
+                  <span className="wd-sheet-label">{row.label}</span>
+                  <span className="wd-sheet-value">{formatINR(row.value)}</span>
+                </div>
+              ))}
+              <div className="wd-sheet-row wd-sheet-total">
+                <span className="wd-sheet-label">Total</span>
+                <span className="wd-sheet-value">{formatINR(breakup.total)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div>
       <Navbar />
@@ -362,20 +624,20 @@ const WishlistPage = () => {
               const product = item.productDetails || {};
               const productName = getProductName(product);
               const productPrice = getProductPrice(product);
-              const productId = product.opentag_id || item.product;
               const imageUrl = getImageUrl(product);
               const wishlistId = item.wishlist_id || item.id;
               const productWeight = getProductWeight(product);
+              const available = isProductAvailable(product);
 
               return (
-                <div 
-                  key={wishlistId} 
+                <div
+                  key={wishlistId}
                   className="wishlist-card"
-                  onClick={() => handleProductClick(productId)}
+                  onClick={() => openDetails(wishlistId)}
                 >
                   <div className="wishlist-image-wrapper">
-                    <img 
-                      src={imageUrl} 
+                    <img
+                      src={imageUrl}
                       alt={productName}
                       className="wishlist-image"
                       loading="lazy"
@@ -383,7 +645,8 @@ const WishlistPage = () => {
                         e.target.src = 'https://via.placeholder.com/400x400/FFD700/FFFFFF?text=Jewellery';
                       }}
                     />
-                    <button 
+                    {/* Overlay remove button (desktop / tablet) */}
+                    <button
                       className="remove-btn"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -393,10 +656,10 @@ const WishlistPage = () => {
                     >
                       {removingItem[wishlistId] ? '⏳' : '✕'}
                     </button>
-                    
+
                     {/* Status Badge */}
                     {product.status && (
-                      <span className={`status-badge ${product.status === 'Available' ? 'available' : 'unavailable'}`}>
+                      <span className={`status-badge ${available ? 'available' : 'unavailable'}`}>
                         {product.status}
                       </span>
                     )}
@@ -407,15 +670,15 @@ const WishlistPage = () => {
                       <span className="product-category">{product.category || 'Jewellery'}</span>
                       <span className="product-metal">{product.metal_type || 'Gold'}</span>
                     </div>
-                    
+
                     <h3 className="wishlist-name">{productName}</h3>
-                    
+
                     {product.purity && (
                       <div className="product-purity">
                         💎 Purity: {product.purity}%
                       </div>
                     )}
-                    
+
                     <div className="product-weight">
                       ⚖️ Weight: {productWeight}
                     </div>
@@ -425,7 +688,7 @@ const WishlistPage = () => {
                         🎨 {product.design_master}
                       </div>
                     )}
-                    
+
                     <div className="wishlist-price-row">
                       <div className="wishlist-price">
                         <span className="current-price">
@@ -437,17 +700,32 @@ const WishlistPage = () => {
                           </span>
                         )}
                       </div>
-                      
-                      <button 
-                        className="add-to-cart-wishlist-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addToCart(product, item);
-                        }}
-                        disabled={product.status !== 'Available'}
-                      >
-                        {product.status === 'Available' ? '🛒 Add to Cart' : 'Out of Stock'}
-                      </button>
+
+                      <div className="wishlist-actions">
+                        {/* Inline trash button (mobile) */}
+                        <button
+                          className="remove-btn-inline"
+                          aria-label="Remove from wishlist"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFromWishlist(wishlistId, productName);
+                          }}
+                          disabled={removingItem[wishlistId]}
+                        >
+                          {removingItem[wishlistId] ? '⏳' : '🗑'}
+                        </button>
+
+                        <button
+                          className="add-to-cart-wishlist-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToCart(product, item);
+                          }}
+                          disabled={!available}
+                        >
+                          {available ? 'Move to Cart' : 'Out of Stock'}
+                        </button>
+                      </div>
                     </div>
 
                     {/* Additional Details */}
@@ -463,6 +741,9 @@ const WishlistPage = () => {
           </div>
         )}
       </div>
+
+      {renderDetails()}
+
       <Footer />
     </div>
   );

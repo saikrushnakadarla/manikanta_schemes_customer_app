@@ -1,0 +1,398 @@
+/* ===== Payment History / Installments page – mobile app layout ===== */
+:root {
+  --ph-purple: #5b2189;
+  --ph-purple-dark: #4a1a78;
+  --ph-green: #2e7d4f;
+  --ph-green-dark: #236b40;
+  --ph-bg: #f7f5f8;
+  --ph-ink: #1f1a24;
+  --ph-muted: #888;
+  --ph-red: #c0392b;
+  --ph-blue-1: #0b2a5b;
+  --ph-blue-2: #1e5fa8;
+  --ph-gold: #f5b301;
+}
+
+.installments-page {
+  min-height: 100vh;
+  background: var(--ph-bg);
+  color: var(--ph-ink);
+  padding-bottom: 120px;
+}
+
+.installments-content {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 12px 14px 40px;
+  box-sizing: border-box;
+}
+
+.installments-content * { box-sizing: border-box; }
+
+/* ===== Header ===== */
+.ph-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 2px 18px;
+}
+
+.ph-back-btn {
+  background: none;
+  border: none;
+  color: var(--ph-ink);
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ph-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ph-ink);
+  letter-spacing: 0.2px;
+}
+
+.ph-active-badge {
+  background: #e6f4ea;
+  color: var(--ph-green);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+/* ===== Blue Summary Card ===== */
+.ph-summary-card {
+  background: linear-gradient(135deg, var(--ph-blue-1) 0%, var(--ph-blue-2) 100%);
+  border-radius: 18px;
+  padding: 20px 18px 18px;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(11, 42, 91, 0.25);
+  margin-bottom: 18px;
+}
+
+.ph-summary-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.ph-summary-left { flex: 1; min-width: 0; }
+
+.ph-scheme-name {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.ph-scheme-sub {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.ph-summary-right {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.ph-gold-amount {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ph-gold);
+}
+
+.ph-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ph-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ph-progress-fill {
+  height: 100%;
+  background: var(--ph-gold);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.ph-progress-text {
+  font-size: 0.8rem;
+  color: #fff;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ===== Filter chips ===== */
+.ph-filter-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.ph-filter-chip {
+  border: 1px solid #e0d7e6;
+  background: #fff;
+  color: #666;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.ph-filter-chip.active {
+  background: var(--ph-purple);
+  color: #fff;
+  border-color: var(--ph-purple);
+}
+
+/* ===== List ===== */
+.ph-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ph-card {
+  position: relative;
+  display: flex;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(60, 20, 90, 0.06);
+}
+
+.ph-card-strip {
+  width: 6px;
+  flex-shrink: 0;
+}
+
+.strip-paid { background: var(--ph-green); }
+.strip-upcoming { background: #b9b9b9; }
+
+.ph-card-body {
+  flex: 1;
+  padding: 16px 16px 14px;
+  min-width: 0;
+}
+
+.ph-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ph-installment-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ph-ink);
+}
+
+.ph-installment-amount {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ph-green);
+  white-space: nowrap;
+}
+
+.ph-card:not(.paid) .ph-installment-amount {
+  color: var(--ph-ink);
+}
+
+.ph-status-row {
+  margin-bottom: 8px;
+}
+
+.ph-status-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+}
+
+.status-paid {
+  background: #e6f4ea;
+  color: var(--ph-green);
+}
+
+.status-upcoming {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.status-overdue {
+  background: #fdecea;
+  color: var(--ph-red);
+}
+
+.status-cancelled {
+  background: #f0f0f0;
+  color: #888;
+}
+
+.ph-date-line {
+  margin: 0 0 14px;
+  font-size: 0.82rem;
+  color: #8a8a8a;
+}
+
+.ph-divider {
+  height: 1px;
+  background: #eee;
+  margin-bottom: 14px;
+}
+
+.ph-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.ph-payment-mode {
+  font-size: 0.82rem;
+  color: #999;
+  text-transform: capitalize;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ph-outline-btn {
+  border: 1.5px solid var(--ph-purple);
+  background: #fff;
+  color: var(--ph-purple);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.ph-outline-btn:active { background: #f5edfb; }
+
+.ph-paynow-btn {
+  border: none;
+  background: #3a3a3a;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 10px 26px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.ph-paynow-btn:active { background: #222; }
+.ph-paynow-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* No data */
+.ph-no-data {
+  text-align: center;
+  padding: 50px 20px;
+  color: #999;
+}
+
+.ph-no-data p { margin: 0 0 6px; font-weight: 600; color: #666; }
+.ph-no-data span { font-size: 0.85rem; }
+
+/* ===== Floating button ===== */
+.ph-floating-pay-btn {
+  position: fixed;
+  bottom: 90px;
+  right: 20px;
+  background: var(--ph-purple);
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  padding: 14px 24px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 6px 18px rgba(91, 33, 137, 0.4);
+  z-index: 50;
+}
+
+.ph-floating-pay-btn:active { background: var(--ph-purple-dark); }
+.ph-floating-pay-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+/* ===== Loading / Error ===== */
+.installments-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  color: var(--ph-muted);
+  gap: 16px;
+}
+
+.scheme-loader {
+  width: 42px;
+  height: 42px;
+  border: 4px solid #e5dce9;
+  border-top: 4px solid var(--ph-purple);
+  border-radius: 50%;
+  animation: schemeSpin 1s linear infinite;
+}
+
+@keyframes schemeSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.installments-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 20px;
+  text-align: center;
+  color: var(--ph-red);
+  gap: 12px;
+}
+
+.installments-error i { font-size: 2.5rem; }
+.installments-error h3 { margin: 0; color: var(--ph-ink); }
+.installments-error p { margin: 0; color: #666; }
+
+@media (max-width: 380px) {
+  .ph-title { font-size: 1.02rem; }
+  .ph-scheme-name { font-size: 0.98rem; }
+  .ph-installment-title { font-size: 0.92rem; }
+  .ph-outline-btn { padding: 8px 12px; font-size: 0.76rem; }
+  .ph-paynow-btn { padding: 9px 18px; font-size: 0.78rem; }
+}
